@@ -3,8 +3,6 @@
 import sys
 import logging
 import json
-import hashlib
-import time
 import pika
 
 #------------------------------------------------------------------------------
@@ -13,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 #------------------------------------------------------------------------------
 
-from zepp import epp_client
-from zepp import commands
+from epp import client
 
 from lib import xml2json
 
@@ -36,7 +33,7 @@ class GateServer(object):
 
     def run(self):
         logger.info('starting new EPP connection at %r:%r', self.epp_params[0], self.epp_params[1])
-        self.epp = epp_client.EPPConnection(
+        self.epp = client.EPPConnection(
             host=self.epp_params[0],
             port=int(self.epp_params[1]),
             user=self.epp_params[2],
@@ -62,7 +59,6 @@ class GateServer(object):
         self.channel.basic_consume(
             queue=self.callback_queue,
             on_message_callback=self.on_request,
-            # auto_ack=True,
         )
         logger.info('awaiting RPC requests')
         try:
