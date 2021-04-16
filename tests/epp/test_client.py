@@ -140,3 +140,18 @@ class TestEPPConnection(object):
         c = conn()
         assert c.open() is True
         assert c.close() is True
+
+    @mock.patch('socket.socket.connect')
+    @mock.patch('ssl.wrap_socket')
+    def test_call(self, mock_wrap_socket, mock_socket_connect):
+        mock_socket_connect.return_value = True
+        fake_stream = io.BytesIO(
+            client.int_to_net(len(sample_greeting) + 4, client.get_format_32()) + sample_greeting +
+            client.int_to_net(len(sample_login_response) + 4, client.get_format_32()) + sample_login_response +
+            client.int_to_net(len(sample_logout_response) + 4, client.get_format_32()) + sample_logout_response)
+        setattr(fake_stream, 'send', lambda _: True)
+        mock_wrap_socket.return_value = fake_stream
+        c = conn()
+        assert c.open() is True
+        c.call(cmd='<?xml version="1.0" encoding="UTF-8"?><test></test>')
+
