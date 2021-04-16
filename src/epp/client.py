@@ -158,7 +158,7 @@ class EPPConnection:
             return None
         return ret
 
-    def call(self, cmd):
+    def call(self, cmd, soup=False):
         if self.write(cmd):
             if self.verbose:
                 logger.debug('sent %d bytes:\n%s\n', len(cmd), cmd)
@@ -166,6 +166,20 @@ class EPPConnection:
         if raw:
             if self.verbose:
                 logger.debug('received %d bytes:\n%s', len(raw), raw.decode())
+        if soup:
+            try:
+                soup = BeautifulSoup(raw, "lxml")
+                result = soup.find('result')
+                code = int(result.get('code'))
+                if code < 1000 or code > 9999:
+                    raise Exception('bad response code: %r' % code)
+            except Exception as exc:
+                if self.raise_errors:
+                    raise exc
+                if self.verbose:
+                    logger.exception('failed to read EPP response command')
+                return None
+            return soup
         return raw
 
     #------------------------------------------------------------------------------
