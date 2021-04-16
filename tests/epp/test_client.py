@@ -35,6 +35,13 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd"><response><resul
 <trID><svTRID>1618435120843</svTRID></trID></response></epp>'''
 
 
+sample_unknown_command_response = b'''<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd"><response><result code="2000">
+<msg>Unknown command</msg></result>
+<trID><svTRID>1618663648910</svTRID></trID></response></epp>'''
+
+
 def conn():
     logging.getLogger('epp.client').setLevel(logging.DEBUG)
     return client.EPPConnection(
@@ -45,6 +52,10 @@ def conn():
         verbose=True,
         raise_errors=True,
     )
+
+
+def fake_response(xml_response):
+    return client.int_to_net(len(xml_response) + 4, client.get_format_32()) + xml_response
 
 
 class TestEPPConnection(object):
@@ -94,8 +105,8 @@ class TestEPPConnection(object):
     def test_login_failed(self, mock_wrap_socket, mock_socket_connect):
         mock_socket_connect.return_value = True
         fake_stream = io.BytesIO(
-            client.int_to_net(len(sample_greeting) + 4, client.get_format_32()) + sample_greeting +
-            client.int_to_net(18 + 4, client.get_format_32()) + b'bad login response')
+            fake_response(sample_greeting) +
+            fake_response(b'bad login response'))
         setattr(fake_stream, 'send', lambda _: True)
         mock_wrap_socket.return_value = fake_stream
         with pytest.raises(AttributeError):
@@ -106,8 +117,8 @@ class TestEPPConnection(object):
     def test_open_success(self, mock_wrap_socket, mock_socket_connect):
         mock_socket_connect.return_value = True
         fake_stream = io.BytesIO(
-            client.int_to_net(len(sample_greeting) + 4, client.get_format_32()) + sample_greeting +
-            client.int_to_net(len(sample_login_response) + 4, client.get_format_32()) + sample_login_response)
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response))
         setattr(fake_stream, 'send', lambda _: True)
         mock_wrap_socket.return_value = fake_stream
         assert conn().open() is True
@@ -117,9 +128,9 @@ class TestEPPConnection(object):
     def test_close_failed(self, mock_wrap_socket, mock_socket_connect):
         mock_socket_connect.return_value = True
         fake_stream = io.BytesIO(
-            client.int_to_net(len(sample_greeting) + 4, client.get_format_32()) + sample_greeting +
-            client.int_to_net(len(sample_login_response) + 4, client.get_format_32()) + sample_login_response +
-            client.int_to_net(19 + 4, client.get_format_32()) + b'bad logout response')
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response) +
+            fake_response(b'bad logout response'))
         setattr(fake_stream, 'send', lambda _: True)
         mock_wrap_socket.return_value = fake_stream
         c = conn()
@@ -132,9 +143,9 @@ class TestEPPConnection(object):
     def test_close_success(self, mock_wrap_socket, mock_socket_connect):
         mock_socket_connect.return_value = True
         fake_stream = io.BytesIO(
-            client.int_to_net(len(sample_greeting) + 4, client.get_format_32()) + sample_greeting +
-            client.int_to_net(len(sample_login_response) + 4, client.get_format_32()) + sample_login_response +
-            client.int_to_net(len(sample_logout_response) + 4, client.get_format_32()) + sample_logout_response)
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response) +
+            fake_response(sample_logout_response))
         setattr(fake_stream, 'send', lambda _: True)
         mock_wrap_socket.return_value = fake_stream
         c = conn()
@@ -146,12 +157,34 @@ class TestEPPConnection(object):
     def test_call(self, mock_wrap_socket, mock_socket_connect):
         mock_socket_connect.return_value = True
         fake_stream = io.BytesIO(
-            client.int_to_net(len(sample_greeting) + 4, client.get_format_32()) + sample_greeting +
-            client.int_to_net(len(sample_login_response) + 4, client.get_format_32()) + sample_login_response +
-            client.int_to_net(len(sample_logout_response) + 4, client.get_format_32()) + sample_logout_response)
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response) +
+            fake_response(sample_unknown_command_response) +
+            fake_response(sample_logout_response))
         setattr(fake_stream, 'send', lambda _: True)
         mock_wrap_socket.return_value = fake_stream
         c = conn()
         assert c.open() is True
-        c.call(cmd='<?xml version="1.0" encoding="UTF-8"?><test></test>')
+        assert c.call(cmd='<?xml version="1.0" encoding="UTF-8"?><test></test>') == sample_unknown_command_response
+        assert c.close() is True
 
+    @mock.patch('socket.socket.connect')
+    @mock.patch('ssl.wrap_socket')
+    def test_call_with_soup(self, mock_wrap_socket, mock_socket_connect):
+        mock_socket_connect.return_value = True
+        fake_stream = io.BytesIO(
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response) +
+            fake_response(sample_unknown_command_response) +
+            fake_response(sample_logout_response))
+        setattr(fake_stream, 'send', lambda _: True)
+        mock_wrap_socket.return_value = fake_stream
+        c = conn()
+        assert c.open() is True
+        resp = c.call(
+            cmd='<?xml version="1.0" encoding="UTF-8"?><test></test>',
+            soup=True,
+        )
+        assert resp.find('result').get('code') == '2000'
+        assert resp.find('msg').text == 'Unknown command'
+        assert c.close() is True

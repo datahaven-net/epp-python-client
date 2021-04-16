@@ -7,6 +7,7 @@ setup_params = dict(
     author_email='penev.veselin@gmail.com',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
+    scripts=['bin/epp-gate', ],
     description='Python-based Extensible Provisioning Protocol (EPP) client',
     long_description=(
         "The library provides an interface to the Extensible Provisioning "
