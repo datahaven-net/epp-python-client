@@ -12,16 +12,16 @@ logger = logging.getLogger(__name__)
 #------------------------------------------------------------------------------
 
 from epp import client
-
-from lib import xml2json
+from epp import xml2json
 
 #------------------------------------------------------------------------------
 
 class XML2JsonOptions(object):
     pretty = True
 
+#------------------------------------------------------------------------------
 
-class GateServer(object):
+class EPP_RPC_Server(object):
 
     def __init__(self, epp_params, connection_params, queue_name, verbose=False):
         self.epp = None
@@ -237,7 +237,7 @@ def main():
     )
     logging.getLogger('pika').setLevel(logging.WARNING)
 
-    srv = GateServer(
+    srv = EPP_RPC_Server(
         epp_params=open(sys.argv[1], 'r').read().split(' '),
         connection_params=open(sys.argv[2], 'r').read().split(' '),
         queue_name='epp_messages',
@@ -245,6 +245,7 @@ def main():
     )
     return srv.run()
 
+#------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     sys.exit(int(not main()))
