@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import copy
@@ -51,34 +52,43 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Client(object):
 
-    def __init__(self, rabbitmq_credentials=None, rabbitmq_credentials_filename=None):
+    def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None):
+        json_conf = {}
+        if os.environ.get('RPC_CLIENT_CONF'):
+            json_conf = json.loads(os.environ['RPC_CLIENT_CONF'])
+        if os.environ.get('RPC_CLIENT_CONF_PATH'):
+            json_conf = json.loads(open(os.environ['RPC_CLIENT_CONF_PATH'], 'r').read())
         if rabbitmq_credentials:
-            _host, _port, _username, _password = rabbitmq_credentials
+            self.rabbitmq_host, self.rabbitmq_port, self.rabbitmq_username, self.rabbitmq_password = rabbitmq_credentials
         else:
-            secret = open(rabbitmq_credentials_filename, 'r').read()
-            _host, _port, _username, _password = secret.strip().split(' ')
+            self.rabbitmq_host = json_conf['host']
+            self.rabbitmq_port = json_conf['port']
+            self.rabbitmq_username = json_conf['username']
+            self.rabbitmq_password = json_conf['password']
+        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 5))
+        self.rabbitmq_connection = None
+        self.channel = None
+        self.reply_queue = None
+        self.reply = None
 
+    def connect(self):
         try:
-            self.connection = pika.BlockingConnection(
+            self.rabbitmq_connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
-                    host=_host,
-                    port=int(_port),
+                    host=self.rabbitmq_host,
+                    port=int(self.rabbitmq_port),
                     credentials=pika.credentials.PlainCredentials(
-                        username=_username,
-                        password=_password,
+                        username=self.rabbitmq_username,
+                        password=self.rabbitmq_password,
                     ),
                 )
             )
         except pika.exceptions.ConnectionClosed as exc:
             raise rpc_error.EPPConnectionFailed(str(exc))
-
-        self.connection.call_later(5, self.on_timeout)
-
-        self.channel = self.connection.channel()
-
+        self.rabbitmq_connection.call_later(self.rabbitmq_connection_timeout, self.on_timeout)
+        self.channel = self.rabbitmq_connection.channel()
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.reply_queue = result.method.queue
-
         self.channel.basic_consume(
             queue=self.reply_queue,
             on_message_callback=self.on_response,
@@ -86,11 +96,11 @@ class EPP_RPC_Client(object):
         )
 
     def on_timeout(self, *a, **kw):
-        logger.info('RPCClient on_timeout !!!!!!!!!!!!!!')
+        logger.info('EPP_RPC_Client timeout !!!!!!!!!!!!!!')
         try: 
-            self.connection.close()
+            self.rabbitmq_connection.close()
         except Exception as exc:
-            logger.error('connection close finished unclean: %r', repr(exc))
+            logger.error('connection left unclean: %r', repr(exc))
 
     def on_response(self, ch, method, props, body):
         if self.corr_id == props.correlation_id:
@@ -109,18 +119,35 @@ class EPP_RPC_Client(object):
             body=str(query)
         )
         while self.reply is None:
-            self.connection.process_data_events()
+            self.rabbitmq_connection.process_data_events()
         return self.reply
 
 #------------------------------------------------------------------------------
 
-def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None):
+def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
+                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None):
     """
     Sends EPP message in JSON format towards COCCA back-end via RabbitMQ server.
     Here RabbitMQ is connecting your application with another Python process running `rpc_server.py`, so-called EPP Gate.
     Method returns XML response message received back from the Gate via RabbitMQ.
 
-    Additionally an extra "auto-healing" mechanism may be implemented to re-connect Gate with the COCCA back-end.
+    You can pass RabbitMQ connection parameters while making RPC request using input parameters:
+
+        rabbitmq_credentials=('localhost', 800, '<rabbitmq username>', '<rabbitmq password>', )
+        rabbitmq_connection_timeout=5
+
+    Another way to pass sensitive secrets to the client is via environment variable `RPC_CLIENT_CONF_PATH`.
+    Environment variable `RPC_CLIENT_CONF_PATH` must store the local path to a Json-formatted configuration file.
+
+        {
+            "host": "localhost",
+            "port": "800",
+            "username": "<rabbitmq username>",
+            "password": "<rabbitmq password>",
+            "timeout": 5
+        }
+
+    Additionally, an extra "auto-healing" mechanism may be used to re-connect Gate server with the COCCA back-end after a fault.
     When COCCA back-end drops the connection from the server-side - the EPP Gate needs to be "restarted".
     EPP connection must re-login to be able to send and receive XML messages again - this is done inside `rpc_server.py` process.
 
@@ -143,10 +170,18 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None)
         if cache_client:
             client = _CachedClient
             if not client:
-                client = EPP_RPC_Client()
+                client = EPP_RPC_Client(
+                    rabbitmq_credentials=rabbitmq_credentials,
+                    rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+                )
+                client.connect()
                 _CachedClient = client
         else:
-            client = EPP_RPC_Client()
+            client = EPP_RPC_Client(
+                rabbitmq_credentials=rabbitmq_credentials,
+                rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+            )
+            client.connect()
         reply = client.request(json.dumps(json_request))
         if not reply:
             logger.error('empty response from RPCClient')
@@ -161,7 +196,11 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None)
         time.sleep(2)
         # if the issue is still here it will raise EPPBadResponse() in run() method anyway
         _CachedClient = None
-        client = EPP_RPC_Client()
+        client = EPP_RPC_Client(
+            rabbitmq_credentials=rabbitmq_credentials,
+            rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+        )
+        client.connect()
         reply = client.request(json.dumps(json_request))
     return reply
 
@@ -176,18 +215,18 @@ def run(json_request, raise_for_result=True, logs=True):
 
     if logs:
         if DEBUG:
-            logger.debug('        >>> EPP: %s' % json_request)
+            logger.debug('        >>> EPP: %s', json_request)
         else:
-            logger.info('        >>> EPP: %s' % json_request.get('cmd', 'unknown'))
+            logger.info('        >>> EPP: %s', json_request.get('cmd', 'unknown'))
 
     try:
         rpc_response = do_rpc_request(json_request)
     except rpc_error.EPPError as exc:
-        logger.error('epp request failed with known error: %s' % exc)
+        logger.error('epp request failed with known error: %s', exc)
         raise exc
     except Exception as exc:
-        logger.error('epp request failed, unexpected error: %s' % traceback.format_exc())
-        raise rpc_error.EPPBadResponse('epp request failed: %s' % exc)
+        logger.error('epp request failed, unexpected error: %s', traceback.format_exc())
+        raise rpc_error.EPPBadResponse('epp request failed: %r' % exc)
 
     if not rpc_response:
         logger.error('empty response from epp_gate, connection error')
@@ -196,7 +235,7 @@ def run(json_request, raise_for_result=True, logs=True):
     try:
         json_output = json.loads(rpc_response)
     except Exception as exc:
-        logger.error('epp request failed, response is not readable: %s' % traceback.format_exc())
+        logger.exception('epp request failed, response is not readable')
         raise rpc_error.EPPBadResponse('epp request failed: %s' % exc)
 
     output_error = json_output.get('error')
@@ -209,20 +248,20 @@ def run(json_request, raise_for_result=True, logs=True):
             msg = json_output['epp']['response']['result']['msg'].replace('Command failed;', '')
         except:
             if logs:
-                logger.error('bad formatted response: ' + json_output)
+                logger.error('bad formatted response: %r', rpc_response)
             raise rpc_error.EPPBadResponse('bad formatted response, response code not found')
         good_response_codes = ['1000', ]
         if True:  # just to be able to debug poll script packets
             good_response_codes.extend(['1300', '1301', ])
         if code not in good_response_codes:
             if logs:
-                logger.error('response code failed: ' + json.dumps(json_output, indent=2))
+                logger.error('response code failed: %r', json.dumps(json_output, indent=2))
             epp_exc = rpc_error.exception_from_response(response=json_output, message=msg, code=code)
             raise epp_exc
 
     if logs:
         if DEBUG:
-            logger.debug('        <<< EPP: %s' % json_output)
+            logger.debug('        <<< EPP: %s', json_output)
         else:
             try:
                 code = json_output['epp']['response']['result']['@code']

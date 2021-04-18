@@ -18,4 +18,4 @@ venv:
 
 .PHONY: test
 test: venv
-	PYTHONPATH=./src ./venv/bin/pytest --color=yes --capture=no --log-cli-level=DEBUG ./tests
+	PYTHONPATH=./src ./venv/bin/pytest -vv --color=yes --capture=no --log-cli-level=DEBUG ./tests

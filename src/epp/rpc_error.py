@@ -42,37 +42,8 @@ class EPPBadResponse(EPPError):
     pass
 
 
-class EPPCommandFailed(EPPError):
-    pass
-
-
-class EPPCommandInvalid(EPPError):
-    pass
-
-
 class EPPUnexpectedResponse(EPPError):
     pass
-
-
-class EPPRegistrarAuthFailed(EPPError):
-    pass
-
-
-class EPPRegistrantAuthFailed(EPPError):
-    pass
-
-
-class EPPRegistrantUnknown(EPPError):
-    pass
-
-
-class EPPDomainNotExist(EPPError):
-    pass
-
-
-class EPPNonSupportedZone(EPPError):
-    pass
-
 
 #------------------------------------------------------------------------------
 # following exceptions are raised based on EPP response code
@@ -87,6 +58,11 @@ class EPPObjectStatusProhibitsOperation(EPPError):
 
 class EPPAuthorizationError(EPPError):
     code = 2201
+
+
+class EPPCommandFailed(EPPError):
+    code = 2400
+
 
 #------------------------------------------------------------------------------
 
@@ -106,6 +82,8 @@ def exception_from_response(response, message=None, code=None):
         return EPPObjectNotExist(response=response, message=message)
     if code == 2304:
         return EPPObjectStatusProhibitsOperation(response=response, message=message)
+    if code == 2400:
+        return EPPCommandFailed(response=response, message=message)
     # TODO: other exceptions to be added here
-    logger.warn('response code %d do not have mapped exception yet' % code)
+    logger.warn('response code %r do not have mapped exception yet', code)
     return EPPUnexpectedResponse(response=response, message=message, code=code) 
