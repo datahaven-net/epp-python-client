@@ -23,33 +23,37 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Server(object):
 
-    def __init__(self, epp_params, connection_params, queue_name, verbose=False):
+    def __init__(self, epp_params, rabbitmq_params, queue_name, verbose=False):
         self.epp = None
         self.connection = None
         self.epp_params = epp_params
-        self.conn_params = connection_params
+        self.rabbitmq_params = rabbitmq_params
         self.queue_name = queue_name
         self.verbose = verbose
 
-    def run(self):
+    def connect_epp(self):
         logger.info('starting new EPP connection at %r:%r', self.epp_params[0], self.epp_params[1])
         self.epp = client.EPPConnection(
             host=self.epp_params[0],
             port=int(self.epp_params[1]),
             user=self.epp_params[2],
             password=self.epp_params[3],
+            raise_errors=True,
             verbose=self.verbose,
         )
         if not self.epp.open():
             return False
-        logger.info('starting new connection with the queue service at %r:%r', self.conn_params[0], self.conn_params[1])
-        logger.info('queue service user ID: %r', self.conn_params[2])
+        return True
+
+    def connect_rabbitmq(self):
+        logger.info('starting new connection with the queue service at %r:%r', self.rabbitmq_params[0], self.rabbitmq_params[1])
+        logger.info('queue service user ID: %r', self.rabbitmq_params[2])
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
-                host=self.conn_params[0],
-                port=int(self.conn_params[1]),
+                host=self.rabbitmq_params[0],
+                port=int(self.rabbitmq_params[1]),
                 virtual_host='/',
-                credentials=pika.PlainCredentials(self.conn_params[2], self.conn_params[3]),
+                credentials=pika.PlainCredentials(self.rabbitmq_params[2], self.rabbitmq_params[3]),
             ))
         self.channel = self.connection.channel()
         logger.info('queue name is: %r', self.queue_name)
@@ -60,6 +64,9 @@ class EPP_RPC_Server(object):
             queue=self.callback_queue,
             on_message_callback=self.on_request,
         )
+        return True
+
+    def run(self):
         logger.info('awaiting RPC requests')
         try:
             self.channel.start_consuming()
@@ -68,8 +75,9 @@ class EPP_RPC_Server(object):
             logger.info('server stopped gracefully')
             return True
         except Exception as exc:
-            logger.info('finished with an error: %r' % exc)
-        return False
+            logger.info('finished with an error: %r', exc)
+            return False
+        return True
 
     def on_request(self, inp_channel, inp_method, inp_props, request):
         try:
@@ -97,6 +105,11 @@ class EPP_RPC_Server(object):
         try:
             cmd = request_json['cmd']
             args = request_json.get('args', {})
+        except KeyError as exc:
+            logger.exception('failed processing epp command')
+            return {'error': 'failed reading epp request: %r' % exc, }
+
+        try:
             if self.verbose:
                 logger.debug('request: [%s]  %r', cmd, args)
             response_xml = ''
@@ -199,11 +212,11 @@ class EPP_RPC_Server(object):
 
         except Exception as exc:
             logger.exception('failed processing epp command')
-            return {'error': str(exc), }
+            return {'error': 'failed processing epp command: %r' % exc, }
 
         if not response_xml:
             logger.error('UNKNOWN COMMAND: %r', cmd)
-            return {'error': 'unknown command %s' % cmd, }
+            return {'error': 'unknown command: %r' % cmd, }
 
         try:
             response_json = json.loads(xml2json.xml2json(response_xml, XML2JsonOptions(), strip_ns=1, strip=1))
@@ -213,7 +226,10 @@ class EPP_RPC_Server(object):
                 response_json = json.loads(xml2json.xml2json(response_xml.encode('ascii', errors='ignore'), XML2JsonOptions(), strip_ns=1, strip=1))
             except Exception as exc:
                 logger.exception('xml2json failed')
-                return {'error': str(exc), }
+                return {'error': 'failed reading epp response: %r' % exc, }
+        except Exception as exc:
+            logger.exception('xml2json failed')
+            return {'error': 'failed reading epp response: %r' % exc, }
 
         try:
             code = response_json['epp']['response']['result']['@code']
@@ -239,10 +255,14 @@ def main():
 
     srv = EPP_RPC_Server(
         epp_params=open(sys.argv[1], 'r').read().split(' '),
-        connection_params=open(sys.argv[2], 'r').read().split(' '),
+        rabbitmq_params=open(sys.argv[2], 'r').read().split(' '),
         queue_name='epp_messages',
         verbose=True,
     )
+    if not srv.connect_epp():
+        return False
+    if not srv.connect_rabbitmq():
+        return False
     return srv.run()
 
 #------------------------------------------------------------------------------
