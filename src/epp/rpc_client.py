@@ -296,111 +296,27 @@ def cmd_poll_ack(msg_id, **args):
 
 #------------------------------------------------------------------------------
 
-def cmd_domain_check(domains, **args):
+def cmd_host_check(hosts_list, **args):
     return run({
-        'cmd': 'domain_check',
+        'cmd': 'host_check',
         'args': {
-            'domains': domains,
+            'hosts': hosts_list,
         },
     }, **args)
 
-def cmd_domain_info(domain, auth_info=None, **args):
-    cmd = {
-        'cmd': 'domain_info',
+
+def cmd_host_create(hostname, ip_address_list=[], **args):
+    """
+    ip_address_list item:
+        {'ip': '10.0.0.1', 'version': 'v4' }
+    """
+    return run({
+        'cmd': 'host_create',
         'args': {
-            'name': domain,
+            'name': hostname,
+            'ip_address': ip_address_list,
         },
-    }
-    if auth_info is not None:
-        cmd['args']['auth_info'] = auth_info
-    return run(cmd, **args)
-
-def cmd_domain_create(
-        domain, nameservers, contacts_dict, registrant,
-        auth_info=None, period='1', period_units='y', **args):
-    """
-    contacts_dict:
-    {
-        "admin": "abc123",
-        "tech": "def456",
-        "billing": "xyz999"
-    }
-    """
-    cmd = {
-        'cmd': 'domain_create',
-        'args': {
-            'name': domain,
-            'nameservers': nameservers,
-            'contacts': contacts_dict,
-            'registrant': registrant,
-            'period': period,
-            'period_units': period_units,
-        },
-    }
-    if auth_info is not None:
-        cmd['args']['auth_info'] = auth_info
-    return run(cmd, **args)
-
-def cmd_domain_renew(domain, cur_exp_date, period, period_units='y', **args):
-    cmd = {
-        'cmd': 'domain_renew',
-        'args': {
-            'name': domain,
-            'cur_exp_date': cur_exp_date,
-            'period': period,
-            'period_units': period_units,
-        },
-    }
-    return run(cmd, **args)
-
-def cmd_domain_update(domain,
-                      add_nameservers_list=[], remove_nameservers_list=[],
-                      add_contacts_list=[], remove_contacts_list=[],
-                      change_registrant=None, auth_info=None,
-                      rgp_restore=None, rgp_restore_report={},
-                      **args):
-    """
-    add_contacts_list and remove_contacts_list item:
-    {
-        "type": "admin",
-        "id": "abc123",
-    }
-    """
-    cmd = {
-        'cmd': 'domain_update',
-        'args': {
-            'name': domain,
-            'add_nameservers': add_nameservers_list,
-            'remove_nameservers': remove_nameservers_list,
-            'add_contacts': add_contacts_list,
-            'remove_contacts': remove_contacts_list,
-        }
-    }
-    if change_registrant is not None:
-        cmd['args']['change_registrant'] = change_registrant
-    if auth_info is not None:
-        cmd['args']['auth_info'] = auth_info
-    if rgp_restore:
-        cmd['args']['rgp_restore'] = '1'
-    if rgp_restore_report:
-        cmd['args']['rgp_restore_report'] = rgp_restore_report
-    return run(cmd, **args)
-
-def cmd_domain_transfer(domain, op, auth_info=None, period_years=None, **args):
-    cmd = {
-        'cmd': 'domain_transfer',
-        'args': {
-            'name': domain,
-            'op': op,
-        }
-    }
-    if auth_info is not None:
-        cmd['args']['auth_info'] = auth_info
-    if period_years is not None:
-        cmd['args']['period_years'] = period_years
-        cmd['args']['period'] = period_years
-        cmd['args']['period_units'] = 'y'
-    return run(cmd, **args)
+    }, **args)
 
 #------------------------------------------------------------------------------
 
@@ -562,26 +478,110 @@ def cmd_contact_delete(contact_id, **args):
 
 #------------------------------------------------------------------------------
 
-def cmd_host_check(hosts_list, **args):
+def cmd_domain_check(domains, **args):
     return run({
-        'cmd': 'host_check',
+        'cmd': 'domain_check',
         'args': {
-            'hosts': hosts_list,
+            'domains': domains,
         },
     }, **args)
 
-
-def cmd_host_create(hostname, ip_address_list=[], **args):
-    """
-    ip_address_list item:
-        {'ip': '10.0.0.1', 'version': 'v4' }
-    """
-    return run({
-        'cmd': 'host_create',
+def cmd_domain_info(domain, auth_info=None, **args):
+    cmd = {
+        'cmd': 'domain_info',
         'args': {
-            'name': hostname,
-            'ip_address': ip_address_list,
+            'name': domain,
         },
-    }, **args)
+    }
+    if auth_info is not None:
+        cmd['args']['auth_info'] = auth_info
+    return run(cmd, **args)
+
+def cmd_domain_create(
+        domain, nameservers, contacts_dict, registrant,
+        auth_info=None, period='1', period_units='y', **args):
+    """
+    contacts_dict:
+    {
+        "admin": "abc123",
+        "tech": "def456",
+        "billing": "xyz999"
+    }
+    """
+    cmd = {
+        'cmd': 'domain_create',
+        'args': {
+            'name': domain,
+            'nameservers': nameservers,
+            'contacts': contacts_dict,
+            'registrant': registrant,
+            'period': period,
+            'period_units': period_units,
+        },
+    }
+    if auth_info is not None:
+        cmd['args']['auth_info'] = auth_info
+    return run(cmd, **args)
+
+def cmd_domain_renew(domain, cur_exp_date, period, period_units='y', **args):
+    cmd = {
+        'cmd': 'domain_renew',
+        'args': {
+            'name': domain,
+            'cur_exp_date': cur_exp_date,
+            'period': period,
+            'period_units': period_units,
+        },
+    }
+    return run(cmd, **args)
+
+def cmd_domain_update(domain,
+                      add_nameservers_list=[], remove_nameservers_list=[],
+                      add_contacts_list=[], remove_contacts_list=[],
+                      change_registrant=None, auth_info=None,
+                      rgp_restore=None, rgp_restore_report={},
+                      **args):
+    """
+    add_contacts_list and remove_contacts_list item:
+    {
+        "type": "admin",
+        "id": "abc123",
+    }
+    """
+    cmd = {
+        'cmd': 'domain_update',
+        'args': {
+            'name': domain,
+            'add_nameservers': add_nameservers_list,
+            'remove_nameservers': remove_nameservers_list,
+            'add_contacts': add_contacts_list,
+            'remove_contacts': remove_contacts_list,
+        }
+    }
+    if change_registrant is not None:
+        cmd['args']['change_registrant'] = change_registrant
+    if auth_info is not None:
+        cmd['args']['auth_info'] = auth_info
+    if rgp_restore:
+        cmd['args']['rgp_restore'] = '1'
+    if rgp_restore_report:
+        cmd['args']['rgp_restore_report'] = rgp_restore_report
+    return run(cmd, **args)
+
+def cmd_domain_transfer(domain, op, auth_info=None, period_years=None, **args):
+    cmd = {
+        'cmd': 'domain_transfer',
+        'args': {
+            'name': domain,
+            'op': op,
+        }
+    }
+    if auth_info is not None:
+        cmd['args']['auth_info'] = auth_info
+    if period_years is not None:
+        cmd['args']['period_years'] = period_years
+        cmd['args']['period'] = period_years
+        cmd['args']['period_units'] = 'y'
+    return run(cmd, **args)
 
 #------------------------------------------------------------------------------

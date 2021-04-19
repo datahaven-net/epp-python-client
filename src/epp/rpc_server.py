@@ -122,6 +122,27 @@ class EPP_RPC_Server(object):
                     msg_id=args['msg_id'],
                 )
 
+            elif cmd == 'host_check':
+                response_xml = self.epp.host_check(
+                    nameservers_list=args['hosts'],
+                )
+
+            elif cmd == 'host_create':
+                response_xml = self.epp.host_create(
+                    nameserver=args['hostname'],
+                    ip_addresses_list=args['ip_address_list'],
+                )
+
+            elif cmd == 'host_':
+                response_xml = self.epp.host_check(
+                    nameservers_list=args[''],
+                )
+
+            elif cmd == 'host_':
+                response_xml = self.epp.host_check(
+                    nameservers_list=args[''],
+                )
+
             elif cmd == 'contact_check':
                 response_xml = self.epp.contact_check(
                     contacts_list=args['contacts'],
