@@ -4,7 +4,7 @@ import mock
 import socket
 import io
 
-from epp import client
+from epp import epp_client
 
 
 sample_greeting = b'''<?xml version="1.0" encoding="UTF-8"?>
@@ -44,7 +44,7 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd"><response><resul
 
 def conn():
     logging.getLogger('epp.client').setLevel(logging.DEBUG)
-    return client.EPPConnection(
+    return epp_client.EPPConnection(
         host='localhost',
         port=800,
         user='tester',
@@ -55,7 +55,7 @@ def conn():
 
 
 def fake_response(xml_response):
-    return client.int_to_net(len(xml_response) + 4, client.get_format_32()) + xml_response
+    return epp_client.int_to_net(len(xml_response) + 4, epp_client.get_format_32()) + xml_response
 
 
 class TestEPPConnection(object):
@@ -72,13 +72,13 @@ class TestEPPConnection(object):
         assert c.verbose is True
 
     def test_make_cltrid(self):
-        assert client.make_cltrid(tm=1234567890) == '2841f3341738c9dc0d3ca84b0ce9d25d'
+        assert epp_client.make_cltrid(tm=1234567890) == '2841f3341738c9dc0d3ca84b0ce9d25d'
 
     def test_int_to_net(self):
-        assert client.int_to_net(len(sample_greeting), client.get_format_32()) == b'\x00\x00\x03\xe3'
+        assert epp_client.int_to_net(len(sample_greeting), epp_client.get_format_32()) == b'\x00\x00\x03\xe3'
 
     def test_int_from_net(self):
-        assert client.int_from_net(b'\x00\x01\x02\x03', client.get_format_32()) == 66051
+        assert epp_client.int_from_net(b'\x00\x01\x02\x03', epp_client.get_format_32()) == 66051
 
     def test_connection_refused(self):
         with pytest.raises(ConnectionRefusedError):
@@ -96,7 +96,7 @@ class TestEPPConnection(object):
     @mock.patch('ssl.wrap_socket')
     def test_greeting_failed(self, mock_wrap_socket, mock_socket_connect):
         mock_socket_connect.return_value = True
-        mock_wrap_socket.return_value = io.BytesIO(client.int_to_net(12, client.get_format_32()) + b'bad greeting')
+        mock_wrap_socket.return_value = io.BytesIO(epp_client.int_to_net(12, epp_client.get_format_32()) + b'bad greeting')
         with pytest.raises(AttributeError):
             conn().open()
 

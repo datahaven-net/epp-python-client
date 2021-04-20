@@ -1,7 +1,7 @@
 single = '                <host:name>%s</host:name>'
 
 
-ip_address = '                    <host:addr ip="%(version)s">%(ip)s</host:addr>'
+ip_address = '                <host:addr ip="%(version)s">%(ip)s</host:addr>'
 
 
 check = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>

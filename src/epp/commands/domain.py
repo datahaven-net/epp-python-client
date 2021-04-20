@@ -7,7 +7,7 @@ single_contact = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
 single_registrant = "<domain:registrant>%s</domain:registrant>"
 
 
-single_nameserver = "<domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+single_nameserver = "                <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
 
 
 auth_info = "<domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>"
@@ -16,7 +16,7 @@ auth_info = "<domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>"
 period = '<domain:period unit="%(units)s">%(value)s</domain:period>'
 
 
-check = """<?xml version="1.0" encoding="UTF-8"?>
+check = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
     <command>
         <check>
@@ -51,7 +51,7 @@ create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <domain:name>%(domain_name)s</domain:name>
                 <domain:registrant>%(registrant)s</domain:registrant>
                 %(period)s
-                %(nameservers)s
+%(nameservers)s
                 %(contact_admin)s
                 %(contact_billing)s
                 %(contact_tech)s

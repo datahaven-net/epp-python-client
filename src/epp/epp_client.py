@@ -331,10 +331,11 @@ class EPPConnection:
             contacts='\n'.join([commands.contact.single % c for c in contacts_list]),
         ))
 
-    def contact_info(self, contact_id):
+    def contact_info(self, contact_id, auth_info=None):
         return self.call(cmd=commands.contact.info % dict(
             cltrid=make_cltrid(),
             contact_id=contact_id,
+            auth_info='' if not auth_info else commands.contact.auth_info % auth_info,
         ))
 
     def contact_create(self, contact_id, voice=None, fax=None, email=None, contacts=[], auth_info=None):
