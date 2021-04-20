@@ -48,6 +48,9 @@ class EPPUnexpectedResponse(EPPError):
 #------------------------------------------------------------------------------
 # following exceptions are raised based on EPP response code
 
+class EPPRequiredParameterMissing(EPPError):
+    code = 2003
+
 
 class EPPObjectExists(EPPError):
     code = 2302
@@ -81,7 +84,9 @@ def exception_from_response(response, message=None, code=None):
         message = message or response['epp']['response']['result']['msg']
     except:
         return EPPBadResponse(response=response)
-    if code == 2201:
+    if code == 2003:
+        return EPPRequiredParameterMissing(response=response, message=message)
+    elif code == 2201:
         return EPPAuthorizationError(response=response, message=message)
     elif code == 2302:
         return EPPObjectExists(response=response, message=message)

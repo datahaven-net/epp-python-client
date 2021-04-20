@@ -1,4 +1,4 @@
-single = "<contact:id>%s</contact:id>"
+single = "                <contact:id>%s</contact:id>"
 
 
 field1 = "                <contact:%(field)s>%(value)s</contact:%(field)s>"
@@ -23,7 +23,8 @@ postal_info2 = """                    <contact:postalInfo type="%(type)s">
                     </contact:postalInfo>"""
 
 
-auth_info = "<contact:authInfo><contact:pw>%s</contact:pw></contact:authInfo>"
+auth_info = """    <contact:authInfo><contact:pw>%s</contact:pw></contact:authInfo>
+            """
 
 
 check = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -31,7 +32,7 @@ check = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     <command>
         <check>
             <contact:check xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
-                %(contacts)s
+%(contacts)s
             </contact:check>
         </check>
         <clTRID>%(cltrid)s</clTRID>
@@ -45,7 +46,7 @@ info = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <info>
             <contact:info xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
                 <contact:id>%(contact_id)s</contact:id>
-            </contact:info>
+            %(auth_info)s</contact:info>
         </info>
         <clTRID>%(cltrid)s</clTRID>
     </command>
@@ -60,8 +61,7 @@ create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <contact:id>%(contact_id)s</contact:id>
 %(contact_fields)s
 %(postal_infos)s
-                %(auth_info)s
-            </contact:create>
+            %(auth_info)s</contact:create>
         </create>
         <clTRID>%(cltrid)s</clTRID>
     </command>
@@ -77,8 +77,7 @@ update = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <contact:chg>
 %(contact_fields)s
 %(postal_infos)s
-                    %(auth_info)s
-                </contact:chg>
+                %(auth_info)s</contact:chg>
             </contact:update>
         </update>
         <clTRID>%(cltrid)s</clTRID>

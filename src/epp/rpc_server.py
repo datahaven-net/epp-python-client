@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 #------------------------------------------------------------------------------
 
-from epp import client
+from epp import epp_client
 from epp import xml2json
 
 #------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ class EPP_RPC_Server(object):
 
     def connect_epp(self):
         logger.info('starting new EPP connection at %r:%r', self.epp_params[0], self.epp_params[1])
-        self.epp = client.EPPConnection(
+        self.epp = epp_client.EPPConnection(
             host=self.epp_params[0],
             port=int(self.epp_params[1]),
             user=self.epp_params[2],
@@ -127,30 +127,26 @@ class EPP_RPC_Server(object):
                     nameservers_list=args['hosts'],
                 )
 
+            elif cmd == 'host_info':
+                response_xml = self.epp.host_info(
+                    nameserver=args['name'],
+                )
+
             elif cmd == 'host_create':
                 response_xml = self.epp.host_create(
-                    nameserver=args['hostname'],
-                    ip_addresses_list=args['ip_address_list'],
-                )
-
-            elif cmd == 'host_':
-                response_xml = self.epp.host_check(
-                    nameservers_list=args[''],
-                )
-
-            elif cmd == 'host_':
-                response_xml = self.epp.host_check(
-                    nameservers_list=args[''],
+                    nameserver=args['name'],
+                    ip_addresses_list=args['ip_address'],
                 )
 
             elif cmd == 'contact_check':
-                response_xml = self.epp.contact_check(
+                response_xml = self.epp.contact_check_multiple(
                     contacts_list=args['contacts'],
                 )
 
             elif cmd == 'contact_info':
                 response_xml = self.epp.contact_info(
                     contact_id=args['contact'],
+                    auth_info=args.get('auth_info'),
                 )
 
             elif cmd == 'contact_create':

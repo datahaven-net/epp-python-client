@@ -305,6 +305,15 @@ def cmd_host_check(hosts_list, **args):
     }, **args)
 
 
+def cmd_host_info(hostname, **args):
+    return run({
+        'cmd': 'host_info',
+        'args': {
+            'name': hostname,
+        },
+    }, **args)
+
+
 def cmd_host_create(hostname, ip_address_list=[], **args):
     """
     ip_address_list item:
@@ -329,13 +338,16 @@ def cmd_contact_check(contacts_ids, **args):
     }, **args)
 
 
-def cmd_contact_info(contact_id, **args):
-    return run({
+def cmd_contact_info(contact_id, auth_info=None, **args):
+    cmd = {
         'cmd': 'contact_info',
         'args': {
             'contact': contact_id,
         },
-    }, **args)
+    }
+    if auth_info is not None:
+        cmd['args']['auth_info'] = auth_info
+    return run(cmd, **args)
 
 
 def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], **args):
