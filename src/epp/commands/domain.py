@@ -1,16 +1,26 @@
 single = "<domain:name>%s</domain:name>"
 
 
-single_contact = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
+single_contact1 = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
+
+single_contact2 = '                    <domain:contact type="%(type)s">%(id)s</domain:contact>'
 
 
-single_registrant = "<domain:registrant>%s</domain:registrant>"
+single_contact_update = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
 
 
-single_nameserver = "                <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+single_registrant = """
+                    <domain:registrant>%s</domain:registrant>"""
 
 
-auth_info = "<domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>"
+single_nameserver = "                    <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+
+
+auth_info = """    <domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>
+            """
+
+auth_info2 = """    <domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>
+                """
 
 
 period = '<domain:period unit="%(units)s">%(value)s</domain:period>'
@@ -35,8 +45,7 @@ info = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <info>
             <domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name hosts="all">%(domain_name)s</domain:name>
-                %(auth_info)s
-            </domain:info>
+            %(auth_info)s</domain:info>
         </info>
         <clTRID>%(cltrid)s</clTRID>
     </command>
@@ -55,8 +64,7 @@ create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 %(contact_admin)s
                 %(contact_billing)s
                 %(contact_tech)s
-                %(auth_info)s
-            </domain:create>
+            %(auth_info)s</domain:create>
         </create>
         <clTRID>%(cltrid)s</clTRID>
     </command>
@@ -85,20 +93,17 @@ update = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
             <domain:update xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name>%(domain_name)s</domain:name>
                 <domain:add>
-                    %(add_nameservers)s
-                    %(add_contacts)s
+%(add_nameservers)s
+%(add_contacts)s
                 </domain:add>
                 <domain:rem>
-                    %(remove_nameservers)s
-                    %(remove_contacts)s
+%(remove_nameservers)s
+%(remove_contacts)s
                 </domain:rem>
-                <domain:chg>
-                    %(change_registrant)s
-                    %(auth_info)s
-                </domain:chg>
+                <domain:chg>%(change_registrant)s
+                %(auth_info)s</domain:chg>
             </domain:update>
-        </update>
-        %(restore_extension)s
+        </update>%(restore_extension)s
         <clTRID>%(cltrid)s</clTRID>
     </command>
 </epp>"""
@@ -109,8 +114,7 @@ restore_request_extension = """
             <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
                 <rgp:restore op="request"></rgp:restore>
             </rgp:update>
-        </extension>
-"""
+        </extension>"""
 
 
 restore_report_extension = """
@@ -129,8 +133,7 @@ restore_report_extension = """
                     </rgp:report>
                 </rgp:restore>
             </rgp:update>
-        </extension>
-"""
+        </extension>"""
 
 
 transfer = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -139,9 +142,8 @@ transfer = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <transfer op="request">
             <domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name>%(domain_name)s</domain:name>
-                %(auth_info)s
                 %(period)s
-            </domain:transfer>
+            %(auth_info)s</domain:transfer>
         </transfer>
         <clTRID>%(cltrid)s</clTRID>
     </command>

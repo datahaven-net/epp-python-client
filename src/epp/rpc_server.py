@@ -3,6 +3,7 @@
 import sys
 import logging
 import json
+import optparse
 import pika
 
 #------------------------------------------------------------------------------
@@ -23,12 +24,13 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Server(object):
 
-    def __init__(self, epp_params, rabbitmq_params, queue_name, verbose=False):
+    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, verbose=False):
         self.epp = None
         self.connection = None
         self.epp_params = epp_params
         self.rabbitmq_params = rabbitmq_params
         self.queue_name = queue_name
+        self.epp_reconnect = epp_reconnect
         self.verbose = verbose
 
     def connect_epp(self):
@@ -101,6 +103,127 @@ class EPP_RPC_Server(object):
         inp_channel.basic_ack(delivery_tag=inp_method.delivery_tag)
         return True
 
+    def do_epp_request(self, cmd, args):
+        response_xml = None
+        if cmd == 'poll_req':
+            response_xml = self.epp.poll_req()
+
+        elif cmd == 'poll_ack':
+            response_xml = self.epp.poll_ack(
+                msg_id=args['msg_id'],
+            )
+
+        elif cmd == 'host_check':
+            response_xml = self.epp.host_check(
+                nameservers_list=args['hosts'],
+            )
+
+        elif cmd == 'host_info':
+            response_xml = self.epp.host_info(
+                nameserver=args['name'],
+            )
+
+        elif cmd == 'host_create':
+            response_xml = self.epp.host_create(
+                nameserver=args['name'],
+                ip_addresses_list=args['ip_address'],
+            )
+
+        elif cmd == 'contact_check':
+            response_xml = self.epp.contact_check_multiple(
+                contacts_list=args['contacts'],
+            )
+
+        elif cmd == 'contact_info':
+            response_xml = self.epp.contact_info(
+                contact_id=args['contact'],
+                auth_info=args.get('auth_info'),
+            )
+
+        elif cmd == 'contact_create':
+            response_xml = self.epp.contact_create(
+                contact_id=args['id'],
+                voice=args.get('voice'),
+                fax=args.get('fax'),
+                email=args.get('email'),
+                contacts=args.get('contacts', []),
+                auth_info=args.get('auth_info'),
+            )
+
+        elif cmd == 'contact_delete':
+            response_xml = self.epp.contact_delete(
+                contact_id=args['contact'],
+            )
+
+        elif cmd == 'contact_update':
+            response_xml = self.epp.contact_update(
+                contact_id=args['id'],
+                voice=args.get('voice'),
+                fax=args.get('fax'),
+                email=args.get('email'),
+                contacts=args.get('contacts', []),
+                auth_info=args.get('auth_info'),
+            )
+
+        elif cmd == 'contact_delete':
+            response_xml = self.epp.contact_delete(
+                contact_id=args['contact'],
+            )
+
+        elif cmd == 'domain_check':
+            response_xml = self.epp.domain_check_multiple(
+                domains_list=args['domains'],
+            )
+
+        elif cmd == 'domain_info':
+            response_xml = self.epp.domain_info(
+                domain_name=args['name'],
+                auth_info=args.get('auth_info'),
+            )
+
+        elif cmd == 'domain_create':
+            response_xml = self.epp.domain_create(
+                domain_name=args['name'],
+                registrant=args['registrant'],
+                nameservers=args.get('nameservers', []),
+                period=args['period'],
+                period_units=args['period_units'],
+                contact_admin=args.get('contacts', {}).get('admin'),
+                contact_billing=args.get('contacts', {}).get('billing'),
+                contact_tech=args.get('contacts', {}).get('tech'),
+                auth_info=args.get('auth_info'),
+            )
+
+        elif cmd == 'domain_renew':
+            response_xml = self.epp.domain_renew(
+                domain_name=args['name'],
+                cur_exp_date=args['cur_exp_date'],
+                period=args['period'],
+                period_units=args['period_units'],
+            )
+
+        elif cmd == 'domain_update':
+            response_xml = self.epp.domain_update(
+                domain_name=args['name'],
+                auth_info=args.get('auth_info'),
+                add_nameservers=args.get('add_nameservers', []),
+                remove_nameservers=args.get('remove_nameservers', []),
+                add_contacts=args.get('add_contacts', []),
+                remove_contacts=args.get('remove_contacts', []),
+                change_registrant=args.get('change_registrant'),
+                rgp_restore=args.get('rgp_restore'),
+                rgp_restore_report=args.get('rgp_restore_report'),
+            )
+
+        elif cmd == 'domain_transfer':
+            response_xml = self.epp.domain_transfer(
+                domain_name=args['name'],
+                auth_info=args.get('auth_info'),
+                period=args.get('period'),
+                period_units=args.get('period_units'),
+            )
+        return response_xml
+
     def do_process_epp_command(self, request_json):
         try:
             cmd = request_json['cmd']
@@ -112,126 +235,31 @@ class EPP_RPC_Server(object):
         try:
             if self.verbose:
                 logger.debug('request: [%s]  %r', cmd, args)
-            response_xml = ''
+            response_xml = self.do_epp_request(cmd, args)
 
-            if cmd == 'poll_req':
-                response_xml = self.epp.poll_req()
-
-            elif cmd == 'poll_ack':
-                response_xml = self.epp.poll_ack(
-                    msg_id=args['msg_id'],
-                )
-
-            elif cmd == 'host_check':
-                response_xml = self.epp.host_check(
-                    nameservers_list=args['hosts'],
-                )
-
-            elif cmd == 'host_info':
-                response_xml = self.epp.host_info(
-                    nameserver=args['name'],
-                )
-
-            elif cmd == 'host_create':
-                response_xml = self.epp.host_create(
-                    nameserver=args['name'],
-                    ip_addresses_list=args['ip_address'],
-                )
-
-            elif cmd == 'contact_check':
-                response_xml = self.epp.contact_check_multiple(
-                    contacts_list=args['contacts'],
-                )
-
-            elif cmd == 'contact_info':
-                response_xml = self.epp.contact_info(
-                    contact_id=args['contact'],
-                    auth_info=args.get('auth_info'),
-                )
-
-            elif cmd == 'contact_create':
-                response_xml = self.epp.contact_create(
-                    contact_id=args['id'],
-                    voice=args.get('voice'),
-                    fax=args.get('fax'),
-                    email=args.get('email'),
-                    contacts=args.get('contacts', []),
-                    auth_info=args.get('auth_info'),
-                )
-
-            elif cmd == 'contact_update':
-                response_xml = self.epp.contact_update(
-                    contact_id=args['id'],
-                    voice=args.get('voice'),
-                    fax=args.get('fax'),
-                    email=args.get('email'),
-                    contacts=args.get('contacts', []),
-                    auth_info=args.get('auth_info'),
-                )
-
-            elif cmd == 'contact_delete':
-                response_xml = self.epp.contact_delete(
-                    contact_id=args['contact'],
-                )
-
-            elif cmd == 'domain_check':
-                response_xml = self.epp.domain_check_multiple(
-                    domains_list=args['domains'],
-                )
-
-            elif cmd == 'domain_info':
-                response_xml = self.epp.domain_info(
-                    domain_name=args['name'],
-                    auth_info=args.get('auth_info'),
-                )
-
-            elif cmd == 'domain_create':
-                response_xml = self.epp.domain_create(
-                    domain_name=args['name'],
-                    registrant=args['registrant'],
-                    nameservers=args.get('nameservers', []),
-                    period=args['period'],
-                    period_units=args['period_units'],
-                    contact_admin=args.get('contacts', {}).get('admin'),
-                    contact_billing=args.get('contacts', {}).get('billing'),
-                    contact_tech=args.get('contacts', {}).get('tech'),
-                    auth_info=args.get('auth_info'),
-                )
-
-            elif cmd == 'domain_renew':
-                response_xml = self.epp.domain_renew(
-                    domain_name=args['name'],
-                    cur_exp_date=args['cur_exp_date'],
-                    period=args['period'],
-                    period_units=args['period_units'],
-                )
-
-            elif cmd == 'domain_update':
-                response_xml = self.epp.domain_update(
-                    domain_name=args['name'],
-                    auth_info=args.get('auth_info'),
-                    add_nameservers=args.get('add_nameservers', []),
-                    remove_nameservers=args.get('remove_nameservers', []),
-                    add_contacts=args.get('add_contacts', []),
-                    remove_contacts=args.get('remove_contacts', []),
-                    change_registrant=args.get('change_registrant'),
-                    rgp_restore=args.get('rgp_restore'),
-                    rgp_restore_report=args.get('rgp_restore_report'),
-                )
-
-            elif cmd == 'domain_transfer':
-                response_xml = self.epp.domain_transfer(
-                    domain_name=args['name'],
-                    auth_info=args.get('auth_info'),
-                    period=args.get('period'),
-                    period_units=args.get('period_units'),
-                )
+        except (epp_client.EPPConnectionAlreadyClosedError, epp_client.EPPResponseEmptyError, ) as exc:
+            if not self.epp_reconnect:
+                if self.verbose:
+                    logger.critical('EPP connection closed: %r', exc)
+                return {'error': 'failed processing epp command: %r' % exc, }
+            if self.verbose:
+                logger.critical('about to restart EPP connection, because of %r', exc)
+            try:
+                self.epp.socket.close()
+            except:
+                logger.exception('EPP socket was not properly closed')
+            try:
+                self.connect_epp()
+                response_xml = self.do_epp_request(cmd, args)
+            except Exception as exc:
+                logger.exception('epp command retry failed')
+                return {'error': 'failed processing epp command: %r' % exc, }
 
         except Exception as exc:
             logger.exception('failed processing epp command')
             return {'error': 'failed processing epp command: %r' % exc, }
 
-        if not response_xml:
+        if response_xml is None:
             logger.error('UNKNOWN COMMAND: %r', cmd)
             return {'error': 'unknown command: %r' % cmd, }
 
@@ -245,7 +273,7 @@ class EPP_RPC_Server(object):
                 logger.exception('xml2json failed')
                 return {'error': 'failed reading epp response: %r' % exc, }
         except Exception as exc:
-            logger.exception('xml2json failed')
+            logger.exception('failed reading epp response')
             return {'error': 'failed reading epp response: %r' % exc, }
 
         try:
@@ -274,6 +302,7 @@ def main():
         epp_params=open(sys.argv[1], 'r').read().split(' '),
         rabbitmq_params=open(sys.argv[2], 'r').read().split(' '),
         queue_name='epp_messages',
+        epp_reconnect=True,
         verbose=True,
     )
     if not srv.connect_epp():
