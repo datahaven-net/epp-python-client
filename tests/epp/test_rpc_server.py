@@ -492,20 +492,36 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd">
             }, },
         )
 
-
-
-#         verify_cmd(
-#             json_request={
-#                 'cmd': 'host_check',
-#                 'args': {
-#                     'hosts_list': ['ns1.google.com', 'ns99999.google.com', ],
-#                 },
-#             },
-#             xml_request,
-#             xml_response,
-#             json_response,
-#         )
-
+    def test_cmd_contact_delete(self):
+        verify_cmd(
+            json_request={
+                'cmd': 'contact_delete',
+                'args': {
+                    'contact': 'epp_id_123',
+                },
+            },
+            xml_request='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <delete>
+            <contact:delete xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+                <contact:id>epp_id_123</contact:id>
+            </contact:delete>
+        </delete>
+        <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
+    </command>
+</epp>''',
+            xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+<response><result code="1000"><msg>Command completed successfully</msg></result><msgQ count="2" id="786"/>
+<trID><clTRID>13ed22ad5eea887a64688edf51db893b</clTRID><svTRID>1618921358722</svTRID></trID></response></epp>''',
+            json_response={'epp': {
+                '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
+                'response': {'msgQ': {'@count': '2', '@id': '786'},
+                     'result': {'@code': '1000', 'msg': 'Command completed successfully'},
+                     'trID': {'clTRID': '13ed22ad5eea887a64688edf51db893b', 'svTRID': '1618921358722'}, },
+            }, },
+        )
 
     def test_cmd_domain_check(self):
         verify_cmd(
@@ -557,7 +573,6 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
         <info>
             <domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name hosts="all">atest50.tld</domain:name>
-                
             </domain:info>
         </info>
         <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
@@ -590,13 +605,13 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                                 {'#text': 'admin02',
                                  '@type': 'admin'},
                                 {'#text': 'tech03',
-                                 '@type': 'tech'}],
+                                 '@type': 'tech'}, ],
                     'crDate': '2020-03-11T09:33:38.698Z',
                     'crID': 'Redacted',
                     'exDate': '2024-03-11T09:33:38.756Z',
                     'name': 'atest50.tld',
                     'ns': {'hostObj': ['ns1.google.com',
-                                       'ns2.google.com']},
+                                       'ns2.google.com'], },
                     'registrant': 'registrant01',
                     'roid': 'registrar_xyz',
                     'status': {'#text': 'Active',
@@ -668,4 +683,168 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                     'result': {'@code': '1000', 'msg': 'Command completed successfully'},
                     'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1618826205527'}, },
             }, },
+        )
+
+    def test_cmd_domain_renew(self):
+        verify_cmd(
+            json_request={
+                'cmd': 'domain_renew',
+                'args': {
+                    'name': 'fakedomain.com',
+                    'cur_exp_date': '2022-07-11T12:43:35.458Z',
+                    'period': '2',
+                    'period_units': 'y',
+                },
+            },
+            xml_request='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <renew>
+            <domain:renew xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>fakedomain.com</domain:name>
+                <domain:curExpDate>2022-07-11T12:43:35.458Z</domain:curExpDate>
+                <domain:period unit="y">2</domain:period>
+            </domain:renew>
+        </renew>
+        <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
+    </command>
+</epp>''',
+            xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+<response><result code="1000"><msg>Command completed successfully</msg></result><msgQ count="2" id="786"/><resData>
+<domain:renData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+<domain:name>fakedomain.com</domain:name><domain:exDate>2024-07-11T12:43:35.458Z</domain:exDate></domain:renData></resData>
+<extension><fee:renData xmlns:fee="urn:ietf:params:xml:ns:fee-1.0"><fee:currency>USD</fee:currency>
+<fee:fee grace-period="P5D">100.00</fee:fee><fee:balance>122173.00</fee:balance>
+<fee:creditLimit>0.00</fee:creditLimit></fee:renData></extension>
+<trID><clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID><svTRID>1618922127154</svTRID></trID></response></epp>''',
+            json_response={'epp': {
+                '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
+                'response': {'extension': {'renData': {
+                    'balance': '122173.00', 'creditLimit': '0.00', 'currency': 'USD', 'fee': {
+                        '#text': '100.00', '@grace-period': 'P5D'}, }, },
+                    'msgQ': {'@count': '2', '@id': '786'},
+                    'resData': {'renData': {
+                        '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd',
+                        'exDate': '2024-07-11T12:43:35.458Z', 'name': 'fakedomain.com'}, },
+                    'result': {'@code': '1000', 'msg': 'Command completed successfully'},
+                    'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1618922127154'}, },
+            }, },
+        )
+
+    def test_cmd_domain_update(self):
+        verify_cmd(
+            json_request={
+                'cmd': 'domain_update',
+                'args': {
+                    'name': 'atest51.tld',
+                    'change_registrant': 'registrant03',
+                    'add_nameservers': ['ns3.google.com', ],
+                    'remove_nameservers': ['ns2.google.com', ],
+                    'rgp_restore_report': {
+                        'pre_data': 'Pre-delete registration data not provided',
+                        'post_data': 'Post-restore registration data not provided',
+                        'del_time': '2020-01-01',
+                        'res_time': '2024-07-11T12:43:35.458Z',
+                        'res_reason': 'Customer abcd@people.com requested to restore domain',
+                        'statement1': 'The information in this report is correct',
+                        'statement2': 'Generated by zone automation process',
+                        'other': 'No other information provided',
+                    },
+                    'add_contacts': [
+                        {'type': 'admin', 'id': 'admin03', },
+                    ],
+                    'remove_contacts': [
+                        {'type': 'tech', 'id': 'tech02', },
+                    ],
+                    'auth_info': 'abc123',
+                },
+            },
+            xml_request='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <update>
+            <domain:update xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>atest51.tld</domain:name>
+                <domain:add>
+                    <domain:ns><domain:hostObj>ns3.google.com</domain:hostObj></domain:ns>
+                    <domain:contact type="admin">admin03</domain:contact>
+                </domain:add>
+                <domain:rem>
+                    <domain:ns><domain:hostObj>ns2.google.com</domain:hostObj></domain:ns>
+                    <domain:contact type="tech">tech02</domain:contact>
+                </domain:rem>
+                <domain:chg>
+                    <domain:registrant>registrant03</domain:registrant>
+                    <domain:authInfo><domain:pw>abc123</domain:pw></domain:authInfo>
+                </domain:chg>
+            </domain:update>
+        </update>
+        <extension>
+            <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
+                <rgp:restore op="report">
+                    <rgp:report>
+                        <rgp:preData>Pre-delete registration data not provided</rgp:preData>
+                        <rgp:postData>Post-restore registration data not provided</rgp:postData>
+                        <rgp:delTime>2020-01-01</rgp:delTime>
+                        <rgp:resTime>2024-07-11T12:43:35.458Z</rgp:resTime>
+                        <rgp:resReason>Customer abcd@people.com requested to restore domain</rgp:resReason>
+                        <rgp:statement>The information in this report is correct</rgp:statement>
+                        <rgp:statement>Generated by zone automation process</rgp:statement>
+                        <rgp:other>No other information provided</rgp:other>
+                    </rgp:report>
+                </rgp:restore>
+            </rgp:update>
+        </extension>
+        <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
+    </command>
+</epp>''',
+            xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+<response><result code="1000"><msg>Command completed successfully</msg></result><msgQ count="2" id="786"/>
+<trID><clTRID>dd8f602b0de383fcf4a63ee89f8bc3ca</clTRID><svTRID>1619202519557</svTRID></trID></response></epp>''',
+            json_response={'epp': {
+                '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
+                'response': {'msgQ': {
+                    '@count': '2', '@id': '786'},
+                'result': {'@code': '1000', 'msg': 'Command completed successfully'},
+                'trID': {'clTRID': 'dd8f602b0de383fcf4a63ee89f8bc3ca', 'svTRID': '1619202519557'}, },
+            }, },
+        )
+
+    def test_cmd_domain_transfer(self):
+        verify_cmd(
+            json_request={
+                'cmd': 'domain_transfer',
+                'args': {
+                    'name': 'atest51.tld',
+                    'op': 'request',
+                    'period': 2,
+                    'period_units': 'y',
+                    'auth_info': 'abc123',
+                },
+            },
+            xml_request='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <transfer op="request">
+            <domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>atest51.tld</domain:name>
+                <domain:period unit="y">2</domain:period>
+                <domain:authInfo><domain:pw>abc123</domain:pw></domain:authInfo>
+            </domain:transfer>
+        </transfer>
+        <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
+    </command>
+</epp>''',
+            xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+<response><result code="1000"><msg>Command completed successfully</msg></result><msgQ count="9" id="792"/><resData>
+<domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+<domain:name>atest51.tld</domain:name><domain:trStatus>serverApproved</domain:trStatus><domain:reID>registrar_02</domain:reID>
+<domain:reDate>2021-04-30T13:30:18.035Z</domain:reDate><domain:acID>registrar_01</domain:acID>
+<domain:acDate>2021-04-30T13:30:18.35Z</domain:acDate><domain:exDate>2026-07-05T07:37:32.152Z</domain:exDate></domain:trnData></resData>
+<trID><clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID><svTRID>1619789418042</svTRID></trID></response></epp>''',
+            json_response={
+            },
         )

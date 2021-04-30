@@ -49,6 +49,16 @@ def int_to_net(value, format_32):
 
 #------------------------------------------------------------------------------
 
+class EPPConnectionAlreadyClosedError(Exception):
+    pass
+
+
+class EPPResponseEmptyError(Exception):
+    pass
+
+#------------------------------------------------------------------------------
+
+
 class EPPConnection:
 
     def __init__(self, host, port, user, password, verbose=False, raise_errors=False):
@@ -63,7 +73,7 @@ class EPPConnection:
         self.verbose = verbose
         self.raise_errors = raise_errors
 
-    def open(self, timeout=2):
+    def open(self, timeout=10):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(timeout)
         try:
@@ -116,7 +126,7 @@ class EPPConnection:
             if self.raise_errors:
                 raise exc
             if self.verbose:
-                logger.exception('connection was not properly connected')
+                logger.exception('connection was not properly closed')
             return False
         if self.verbose:
             logger.debug('EPP connection closed')
@@ -129,6 +139,10 @@ class EPPConnection:
             if length:
                 i = int_from_net(length, self.format_32) - 4
                 ret = self.ssl.read(i)
+        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, ) as exc:
+            if self.verbose:
+                logger.exception('EPP connection already closed')
+            raise EPPConnectionAlreadyClosedError(exc)
         except Exception as exc:
             if self.raise_errors:
                 raise exc
@@ -136,10 +150,9 @@ class EPPConnection:
                 logger.exception('failed to receive EPP response')
             return None
         if ret is None:
-            if self.raise_errors:
-                raise Exception('nothing was received from EPP connection')
             if self.verbose:
                 logger.error('nothing was received from EPP connection')
+            raise EPPResponseEmptyError()
         return ret
 
     def write(self, xml):
@@ -150,6 +163,10 @@ class EPPConnection:
         try:
             self.ssl.send(length)
             ret = self.ssl.send((epp_as_string + "\r\n").encode())
+        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, ) as exc:
+            if self.verbose:
+                logger.exception('EPP connection already closed')
+            raise EPPConnectionAlreadyClosedError(exc)
         except Exception as exc:
             if self.raise_errors:
                 raise exc
@@ -178,9 +195,9 @@ class EPPConnection:
                     raise exc
                 if self.verbose:
                     logger.exception('failed to read EPP response command')
-                return None
+                return ''
             return soup
-        return raw
+        return raw or ''
 
     #------------------------------------------------------------------------------
 
@@ -235,88 +252,23 @@ class EPPConnection:
             msgid=msg_id,
         ))
 
-    def domain_check(self, domain_name):
-        return self.call(cmd=commands.domain.check % dict(
+    def host_check(self, nameservers_list):
+        return self.call(cmd=commands.nameserver.check % dict(
             cltrid=make_cltrid(),
-            domain_names=commands.domain.single % domain_name,
+            nameservers='\n'.join([commands.nameserver.single % ns for ns in nameservers_list]),
         ))
 
-    def domain_check_multiple(self, domains_list):
-        return self.call(cmd=commands.domain.check % dict(
+    def host_info(self, nameserver):
+        return self.call(cmd=commands.nameserver.info % dict(
             cltrid=make_cltrid(),
-            domain_names='\n'.join([
-                commands.domain.single % d for d in domains_list
-            ]),
+            nameserver=nameserver,
         ))
 
-    def domain_info(self, domain_name, auth_info=None):
-        return self.call(cmd=commands.domain.info % dict(
+    def host_create(self, nameserver, ip_addresses_list):
+        return self.call(cmd=commands.nameserver.create % dict(
             cltrid=make_cltrid(),
-            domain_name=domain_name,
-            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
-        ))
-
-    def domain_create(self, domain_name, registrant, nameservers=[], period=1, period_units='y',
-                      contact_admin=None, contact_billing=None, contact_tech=None, auth_info=None):
-        return self.call(cmd=commands.domain.create % dict(
-            cltrid=make_cltrid(),
-            domain_name=domain_name,
-            registrant=registrant,
-            nameservers='\n'.join([
-                commands.domain.single_nameserver % ns for ns in nameservers
-            ]),
-            period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
-            contact_admin='' if not contact_admin else commands.domain.single_contact % dict(type='admin', id=contact_admin),
-            contact_billing='' if not contact_billing else commands.domain.single_contact % dict(type='billing', id=contact_billing),
-            contact_tech='' if not contact_tech else commands.domain.single_contact % dict(type='tech', id=contact_tech),
-            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
-        ))
-
-    def domain_renew(self, domain_name, cur_exp_date, period=1, period_units='y'):
-        return self.call(cmd=commands.domain.renew % dict(
-            cltrid=make_cltrid(),
-            domain_name=domain_name,
-            cur_exp_date=cur_exp_date,
-            period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
-        ))
-
-    def domain_update(self, domain_name, auth_info=None,
-                      add_nameservers=[], remove_nameservers=[],
-                      add_contacts=[], remove_contacts=[], change_registrant=None,
-                      rgp_restore=None, rgp_restore_report=None):
-        restore_extension = ''
-        if rgp_restore:
-            restore_extension = commands.domain.restore_request_extension
-        if rgp_restore_report:
-            restore_extension = commands.domain.restore_report_extension % rgp_restore_report
-        return self.call(cmd=commands.domain.update % dict(
-            cltrid=make_cltrid(),
-            domain_name=domain_name,
-            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
-            add_nameservers='\n'.join([
-                commands.domain.single_nameserver % ns for ns in add_nameservers
-            ]),
-            remove_nameservers='\n'.join([
-                commands.domain.single_nameserver % ns for ns in remove_nameservers
-            ]),
-            add_contacts='\n'.join([
-                commands.domain.single_contact % c for c in add_contacts
-            ]),
-            remove_contacts='\n'.join([
-                commands.domain.single_contact % c for c in remove_contacts
-            ]),
-            change_registrant='' if not change_registrant else (
-                commands.domain.single_registrant % change_registrant
-            ),
-            restore_extension=restore_extension,
-        ))
-
-    def domain_transfer(self, domain_name, auth_info=None, period=None, period_units=None):
-        return self.call(cmd=commands.domain.transfer % dict(
-            cltrid=make_cltrid(),
-            domain_name=domain_name,
-            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
-            period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
+            nameserver=nameserver,
+            ip_addresses='\n'.join([commands.nameserver.ip_address % ipaddr for ipaddr in ip_addresses_list])
         ))
 
     def contact_check(self, contact):
@@ -397,26 +349,91 @@ class EPPConnection:
         ))
 
     def contact_delete(self, contact_id):
-        return self.call(cmd=commands.contact.info % dict(
+        return self.call(cmd=commands.contact.delete % dict(
             cltrid=make_cltrid(),
             contact_id=contact_id,
         ))
 
-    def host_check(self, nameservers_list):
-        return self.call(cmd=commands.nameserver.check % dict(
+    def domain_check(self, domain_name):
+        return self.call(cmd=commands.domain.check % dict(
             cltrid=make_cltrid(),
-            nameservers='\n'.join([commands.nameserver.single % ns for ns in nameservers_list]),
+            domain_names=commands.domain.single % domain_name,
         ))
 
-    def host_info(self, nameserver):
-        return self.call(cmd=commands.nameserver.info % dict(
+    def domain_check_multiple(self, domains_list):
+        return self.call(cmd=commands.domain.check % dict(
             cltrid=make_cltrid(),
-            nameserver=nameserver,
+            domain_names='\n'.join([
+                commands.domain.single % d for d in domains_list
+            ]),
         ))
 
-    def host_create(self, nameserver, ip_addresses_list):
-        return self.call(cmd=commands.nameserver.create % dict(
+    def domain_info(self, domain_name, auth_info=None):
+        return self.call(cmd=commands.domain.info % dict(
             cltrid=make_cltrid(),
-            nameserver=nameserver,
-            ip_addresses='\n'.join([commands.nameserver.ip_address % ipaddr for ipaddr in ip_addresses_list])
+            domain_name=domain_name,
+            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
+        ))
+
+    def domain_create(self, domain_name, registrant, nameservers=[], period=1, period_units='y',
+                      contact_admin=None, contact_billing=None, contact_tech=None, auth_info=None):
+        return self.call(cmd=commands.domain.create % dict(
+            cltrid=make_cltrid(),
+            domain_name=domain_name,
+            registrant=registrant,
+            nameservers='\n'.join([
+                commands.domain.single_nameserver % ns for ns in nameservers
+            ]),
+            period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
+            contact_admin='' if not contact_admin else commands.domain.single_contact1 % dict(type='admin', id=contact_admin),
+            contact_billing='' if not contact_billing else commands.domain.single_contact1 % dict(type='billing', id=contact_billing),
+            contact_tech='' if not contact_tech else commands.domain.single_contact1 % dict(type='tech', id=contact_tech),
+            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
+        ))
+
+    def domain_renew(self, domain_name, cur_exp_date, period=1, period_units='y'):
+        return self.call(cmd=commands.domain.renew % dict(
+            cltrid=make_cltrid(),
+            domain_name=domain_name,
+            cur_exp_date=cur_exp_date,
+            period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
+        ))
+
+    def domain_update(self, domain_name, auth_info=None,
+                      add_nameservers=[], remove_nameservers=[],
+                      add_contacts=[], remove_contacts=[], change_registrant=None,
+                      rgp_restore=None, rgp_restore_report=None):
+        restore_extension = ''
+        if rgp_restore:
+            restore_extension = commands.domain.restore_request_extension
+        if rgp_restore_report:
+            restore_extension = commands.domain.restore_report_extension % rgp_restore_report
+        return self.call(cmd=commands.domain.update % dict(
+            cltrid=make_cltrid(),
+            domain_name=domain_name,
+            auth_info='' if not auth_info else commands.domain.auth_info2 % auth_info,
+            add_nameservers='\n'.join([
+                commands.domain.single_nameserver % ns for ns in add_nameservers
+            ]),
+            remove_nameservers='\n'.join([
+                commands.domain.single_nameserver % ns for ns in remove_nameservers
+            ]),
+            add_contacts='\n'.join([
+                commands.domain.single_contact2 % c for c in add_contacts
+            ]),
+            remove_contacts='\n'.join([
+                commands.domain.single_contact2 % c for c in remove_contacts
+            ]),
+            change_registrant='' if not change_registrant else (
+                commands.domain.single_registrant % change_registrant
+            ),
+            restore_extension=restore_extension,
+        ))
+
+    def domain_transfer(self, domain_name, auth_info=None, period=None, period_units=None):
+        return self.call(cmd=commands.domain.transfer % dict(
+            cltrid=make_cltrid(),
+            domain_name=domain_name,
+            auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
+            period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
         ))

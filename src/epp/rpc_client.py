@@ -580,7 +580,7 @@ def cmd_domain_update(domain,
         cmd['args']['rgp_restore_report'] = rgp_restore_report
     return run(cmd, **args)
 
-def cmd_domain_transfer(domain, op, auth_info=None, period_years=None, **args):
+def cmd_domain_transfer(domain, op='request', auth_info=None, period_years=None, **args):
     cmd = {
         'cmd': 'domain_transfer',
         'args': {
