@@ -290,8 +290,47 @@ class EPP_RPC_Server(object):
 #------------------------------------------------------------------------------
 
 def main():
+    p = optparse.OptionParser(
+        description='Starts the local RPC-server and connects to the EPP back-end system. Connection to this server is carried out through RabbitMQ RPC-client.',
+        prog='epp-gate',
+        usage='%prog --epp=<EPP credentials file path> --rabbitmq=<RabbitMQ credentials file path> --queue=<queue name>'
+    )
+    p.add_option(
+        '--epp',
+        '-e',
+        help="path to the local text file that stores EPP connection info, format:\nepp.host.com 700 login password",
+        default="./epp_credentials",
+    )
+    p.add_option(
+        '--rabbitmq',
+        '-r',
+        help="path to the local text file that stores RabbitMQ connection info, format:\nhostname 5672 login password",
+        default="./rabbitmq_credentials",
+    )
+    p.add_option(
+        '--queue',
+        '-q',
+        help="RabbitMQ queue name",
+        default="epp_messages",
+    )
+    p.add_option(
+        '--reconnect',
+        action="store_true",
+        dest="reconnect",
+        help="automatically reconnect to the EPP system when connection was closed on server side",
+    )
+    p.add_option(
+        '--verbose',
+        '-v',
+        action="store_true",
+        dest="verbose",
+        help="enable verbose logging",
+    )
+
+    options, arguments = p.parse_args()
+
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.DEBUG if options.verbose else logging.WARNING,
         stream=sys.stdout,
         format='%(asctime)s %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
@@ -299,11 +338,11 @@ def main():
     logging.getLogger('pika').setLevel(logging.WARNING)
 
     srv = EPP_RPC_Server(
-        epp_params=open(sys.argv[1], 'r').read().split(' '),
-        rabbitmq_params=open(sys.argv[2], 'r').read().split(' '),
-        queue_name='epp_messages',
-        epp_reconnect=True,
-        verbose=True,
+        epp_params=open(options.epp, 'r').read().split(' '),
+        rabbitmq_params=open(options.rabbitmq, 'r').read().split(' '),
+        queue_name=options.queue,
+        epp_reconnect=options.reconnect,
+        verbose=options.verbose,
     )
     if not srv.connect_epp():
         return False
