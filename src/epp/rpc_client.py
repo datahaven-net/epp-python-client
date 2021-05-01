@@ -52,7 +52,7 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Client(object):
 
-    def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None):
+    def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
         json_conf = {}
         if os.environ.get('RPC_CLIENT_CONF'):
             json_conf = json.loads(os.environ['RPC_CLIENT_CONF'])
@@ -67,6 +67,7 @@ class EPP_RPC_Client(object):
             self.rabbitmq_password = json_conf['password']
         self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 5))
         self.rabbitmq_connection = None
+        self.rabbitmq_queue_name = rabbitmq_queue_name or 'epp_messages'
         self.channel = None
         self.reply_queue = None
         self.reply = None
@@ -124,8 +125,30 @@ class EPP_RPC_Client(object):
 
 #------------------------------------------------------------------------------
 
+def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
+    global _CachedClient
+    if cache_client:
+        client = _CachedClient
+        if not client:
+            client = EPP_RPC_Client(
+                rabbitmq_credentials=rabbitmq_credentials,
+                rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+                rabbitmq_queue_name=rabbitmq_queue_name,
+            )
+            client.connect()
+            _CachedClient = client
+    else:
+        client = EPP_RPC_Client(
+            rabbitmq_credentials=rabbitmq_credentials,
+            rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+            rabbitmq_queue_name=rabbitmq_queue_name,
+        )
+        client.connect()
+    return client
+
+
 def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
-                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None):
+                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
     """
     Sends EPP message in JSON format towards COCCA back-end via RabbitMQ server.
     Here RabbitMQ is connecting your application with another Python process running `rpc_server.py`, so-called EPP Gate.
@@ -167,21 +190,12 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
     """
     global _CachedClient
     try:
-        if cache_client:
-            client = _CachedClient
-            if not client:
-                client = EPP_RPC_Client(
-                    rabbitmq_credentials=rabbitmq_credentials,
-                    rabbitmq_connection_timeout=rabbitmq_connection_timeout,
-                )
-                client.connect()
-                _CachedClient = client
-        else:
-            client = EPP_RPC_Client(
-                rabbitmq_credentials=rabbitmq_credentials,
-                rabbitmq_connection_timeout=rabbitmq_connection_timeout,
-            )
-            client.connect()
+        client = make_client(
+            cache_client=cache_client,
+            rabbitmq_credentials=rabbitmq_credentials,
+            rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+            rabbitmq_queue_name=rabbitmq_queue_name,
+        )
         reply = client.request(json.dumps(json_request))
         if not reply:
             logger.error('empty response from RPCClient')
@@ -196,9 +210,11 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
         time.sleep(2)
         # if the issue is still here it will raise EPPBadResponse() in run() method anyway
         _CachedClient = None
-        client = EPP_RPC_Client(
+        client = make_client(
+            cache_client=cache_client,
             rabbitmq_credentials=rabbitmq_credentials,
             rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+            rabbitmq_queue_name=rabbitmq_queue_name,
         )
         client.connect()
         reply = client.request(json.dumps(json_request))
