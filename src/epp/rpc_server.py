@@ -327,7 +327,7 @@ def main():
         help="enable verbose logging",
     )
 
-    options, arguments = p.parse_args()
+    options, _ = p.parse_args()
 
     logging.basicConfig(
         level=logging.DEBUG if options.verbose else logging.WARNING,

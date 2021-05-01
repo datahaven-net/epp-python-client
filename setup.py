@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup_params = dict(
     name='epp-python-client',
-    version='0.0.1',
+    version='0.0.2',
     author='Veselin Penev',
     author_email='penev.veselin@gmail.com',
     packages=find_packages(where='src'),
@@ -18,6 +18,7 @@ setup_params = dict(
     install_requires=[
         "beautifulsoup4",
         "lxml",
+        "pika",
     ],
 )
 
