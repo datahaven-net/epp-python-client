@@ -416,10 +416,10 @@ class EPPConnection:
             domain_name=domain_name,
             auth_info='' if not auth_info else commands.domain.auth_info2 % auth_info,
             add_nameservers='\n'.join([
-                commands.domain.single_nameserver % ns for ns in add_nameservers
+                commands.domain.single_nameserver2 % ns for ns in add_nameservers
             ]),
             remove_nameservers='\n'.join([
-                commands.domain.single_nameserver % ns for ns in remove_nameservers
+                commands.domain.single_nameserver2 % ns for ns in remove_nameservers
             ]),
             add_contacts='\n'.join([
                 commands.domain.single_contact2 % c for c in add_contacts

@@ -13,7 +13,9 @@ single_registrant = """
                     <domain:registrant>%s</domain:registrant>"""
 
 
-single_nameserver = "                    <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+single_nameserver = "                <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+
+single_nameserver2 = "                    <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
 
 
 auth_info = """    <domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>

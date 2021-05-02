@@ -845,6 +845,20 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
 <domain:reDate>2021-04-30T13:30:18.035Z</domain:reDate><domain:acID>registrar_01</domain:acID>
 <domain:acDate>2021-04-30T13:30:18.35Z</domain:acDate><domain:exDate>2026-07-05T07:37:32.152Z</domain:exDate></domain:trnData></resData>
 <trID><clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID><svTRID>1619789418042</svTRID></trID></response></epp>''',
-            json_response={
-            },
+            json_response={'epp': {
+                '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
+                'response': {'msgQ': {'@count': '9', '@id': '792'},
+                    'resData': {'trnData': {
+                        '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd',
+                        'acDate': '2021-04-30T13:30:18.35Z',
+                        'acID': 'registrar_01',
+                        'exDate': '2026-07-05T07:37:32.152Z',
+                        'name': 'atest51.tld',
+                        'reDate': '2021-04-30T13:30:18.035Z',
+                        'reID': 'registrar_02',
+                        'trStatus': 'serverApproved',
+                    }, },
+                    'result': {'@code': '1000', 'msg': 'Command completed successfully'},
+                    'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1619789418042'}, },
+            }, },
         )

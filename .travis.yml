@@ -1,0 +1,18 @@
+language: python
+
+cache: pip
+
+matrix:
+  include:
+
+  - name: "3.8"
+    python: "3.8"
+
+
+before_install:
+  - set -e
+  - make -v
+
+
+script:
+  - make test
