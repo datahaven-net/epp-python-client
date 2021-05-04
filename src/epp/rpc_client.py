@@ -69,7 +69,7 @@ class EPP_RPC_Client(object):
             self.rabbitmq_port = json_conf['port']
             self.rabbitmq_username = json_conf['username']
             self.rabbitmq_password = json_conf['password']
-        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 10))
+        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 0))
         self.rabbitmq_connection = None
         self.rabbitmq_queue_name = json_conf.get('queue_name', rabbitmq_queue_name) or 'epp_messages'
         logger.debug('queue name is %r', self.rabbitmq_queue_name)
@@ -87,11 +87,13 @@ class EPP_RPC_Client(object):
                         username=self.rabbitmq_username,
                         password=self.rabbitmq_password,
                     ),
+                    heartbeat=5,
                 )
             )
         except pika.exceptions.ConnectionClosed as exc:
             raise rpc_error.EPPConnectionFailed(str(exc))
-        self.rabbitmq_connection.call_later(self.rabbitmq_connection_timeout, self.on_timeout)
+        if self.rabbitmq_connection_timeout:
+            self.rabbitmq_connection.call_later(self.rabbitmq_connection_timeout, self.on_timeout)
         self.channel = self.rabbitmq_connection.channel()
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.reply_queue = result.method.queue
@@ -172,7 +174,8 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             "port": "800",
             "username": "<rabbitmq username>",
             "password": "<rabbitmq password>",
-            "timeout": 5
+            "timeout": 5,
+            "queue_name": "epp_messages"
         }
 
     Additionally, an extra "auto-healing" mechanism may be used to re-connect Gate server with the COCCA back-end after a fault.
