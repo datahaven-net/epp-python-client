@@ -60,6 +60,7 @@ class EPP_RPC_Client(object):
         if os.environ.get('RPC_CLIENT_CONF_PATH'):
             json_conf = json.loads(open(os.environ['RPC_CLIENT_CONF_PATH'], 'r').read())
             logger.info('loaded config from env: RPC_CLIENT_CONF_PATH')
+        logger.debug('config: %r', json_conf)
         if rabbitmq_credentials:
             self.rabbitmq_host, self.rabbitmq_port, self.rabbitmq_username, self.rabbitmq_password = rabbitmq_credentials
             logger.info('loaded credentials from "rabbitmq_credentials" explicitly')
@@ -71,6 +72,7 @@ class EPP_RPC_Client(object):
         self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 10))
         self.rabbitmq_connection = None
         self.rabbitmq_queue_name = json_conf.get('queue_name', rabbitmq_queue_name) or 'epp_messages'
+        logger.debug('queue name is %r', self.rabbitmq_queue_name)
         self.channel = None
         self.reply_queue = None
         self.reply = None
@@ -115,7 +117,7 @@ class EPP_RPC_Client(object):
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
             exchange='',
-            routing_key='epp_messages',
+            routing_key=self.rabbitmq_queue_name,
             properties=pika.BasicProperties(
                 reply_to=self.reply_queue,
                 correlation_id=self.corr_id,
