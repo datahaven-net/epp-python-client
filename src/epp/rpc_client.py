@@ -56,18 +56,21 @@ class EPP_RPC_Client(object):
         json_conf = {}
         if os.environ.get('RPC_CLIENT_CONF'):
             json_conf = json.loads(os.environ['RPC_CLIENT_CONF'])
+            logger.info('loaded config from env: RPC_CLIENT_CONF')
         if os.environ.get('RPC_CLIENT_CONF_PATH'):
             json_conf = json.loads(open(os.environ['RPC_CLIENT_CONF_PATH'], 'r').read())
+            logger.info('loaded config from env: RPC_CLIENT_CONF_PATH')
         if rabbitmq_credentials:
             self.rabbitmq_host, self.rabbitmq_port, self.rabbitmq_username, self.rabbitmq_password = rabbitmq_credentials
+            logger.info('loaded credentials from "rabbitmq_credentials" explicitly')
         else:
             self.rabbitmq_host = json_conf['host']
             self.rabbitmq_port = json_conf['port']
             self.rabbitmq_username = json_conf['username']
             self.rabbitmq_password = json_conf['password']
-        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 5))
+        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 10))
         self.rabbitmq_connection = None
-        self.rabbitmq_queue_name = rabbitmq_queue_name or 'epp_messages'
+        self.rabbitmq_queue_name = json_conf.get('queue_name', rabbitmq_queue_name) or 'epp_messages'
         self.channel = None
         self.reply_queue = None
         self.reply = None
@@ -222,7 +225,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
 
 #------------------------------------------------------------------------------
 
-def run(json_request, raise_for_result=True, logs=True):
+def run(json_request, raise_for_result=True, logs=True, **args):
     try:
         json.dumps(json_request)
     except Exception as exc:
@@ -236,7 +239,7 @@ def run(json_request, raise_for_result=True, logs=True):
             logger.info('        >>> EPP: %s', json_request.get('cmd', 'unknown'))
 
     try:
-        rpc_response = do_rpc_request(json_request)
+        rpc_response = do_rpc_request(json_request, **args)
     except rpc_error.EPPError as exc:
         logger.error('epp request failed with known error: %s', exc)
         raise exc
