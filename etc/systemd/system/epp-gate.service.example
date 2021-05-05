@@ -1,0 +1,31 @@
+# EPP Gate systemd service configuration.
+#
+# Copy and modify `epp-gate.service` file to your local systemd folder to enable the service:
+#
+#         mkdir -p /home/user/.config/systemd/user/
+#         cd /home/user/epp-python-client/
+#         cp etc/systemd/system/epp-gate.service.example /home/user/.config/systemd/user/epp-gate.service
+#         systemctl --user enable epp-gate.service
+#
+#
+# To start EPP Gate service run this command:
+# 
+#         systemctl --user start epp-gate.service
+#
+#
+# You can always check current situation with:
+#
+#         systemctl --user status epp-gate.service 
+#
+
+[Unit]
+Description=EppGate
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/epp-python-client/
+ExecStart=/home/user/epp-python-client/venv/bin/epp-gate --verbose --reconnect --epp=/home/user/keys/epp_credentials.txt --rabbitmq=/home/user/keys/rabbitmq_gate_credentials.txt --queue=epp_rpc_messages 1>>/home/user/logs/gate 2>>/home/user/logs/gate
+
+[Install]
+WantedBy=multi-user.target

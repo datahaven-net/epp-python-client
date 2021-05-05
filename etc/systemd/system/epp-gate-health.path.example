@@ -1,0 +1,32 @@
+# EPP Gate health file configuration.
+#
+# This file is to be used as a single point of true about current EPP Gate connection status.
+# When Python code detects error/failure in response from EPP back-end server and recognize dropped or broken connection
+# it will append a new line to the /home/user/health file and this way report about the issue.
+# Another service called "epp-gate-watcher" suppose to be triggered right away and will restart the main "epp-gate" service.
+#
+# First make link in your global systemd folder to activate the service:
+#
+#         mkdir -p /home/user/.config/systemd/user/
+#         cd /home/user/epp-python-client/
+#         cp etc/systemd/system/epp-gate-health.path.example /home/user/.config/systemd/user/epp-gate-health.path
+#         systemctl --user enable epp-gate-health.path
+#
+#
+# Start EPP Gate health file monitoring by executing this command:
+# 
+#         systemctl --user start epp-gate-health.path
+#
+#
+# You can always check current situation with:
+#
+#         systemctl --user status epp-gate-health.path
+#
+
+
+[Path]
+PathModified=/home/user/health
+Unit=epp-gate-watcher.service 
+
+[Install]
+WantedBy=multi-user.target

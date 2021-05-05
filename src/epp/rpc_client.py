@@ -69,7 +69,7 @@ class EPP_RPC_Client(object):
             self.rabbitmq_port = json_conf['port']
             self.rabbitmq_username = json_conf['username']
             self.rabbitmq_password = json_conf['password']
-        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 0))
+        self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 30))
         self.rabbitmq_connection = None
         self.rabbitmq_queue_name = json_conf.get('queue_name', rabbitmq_queue_name) or 'epp_messages'
         logger.debug('queue name is %r', self.rabbitmq_queue_name)
@@ -87,13 +87,13 @@ class EPP_RPC_Client(object):
                         username=self.rabbitmq_username,
                         password=self.rabbitmq_password,
                     ),
-                    heartbeat=5,
+                    socket_timeout=self.rabbitmq_connection_timeout,
+                    heartbeat=600,
+                    blocked_connection_timeout=300,
                 )
             )
         except pika.exceptions.ConnectionClosed as exc:
             raise rpc_error.EPPConnectionFailed(str(exc))
-        if self.rabbitmq_connection_timeout:
-            self.rabbitmq_connection.call_later(self.rabbitmq_connection_timeout, self.on_timeout)
         self.channel = self.rabbitmq_connection.channel()
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.reply_queue = result.method.queue
@@ -102,13 +102,6 @@ class EPP_RPC_Client(object):
             on_message_callback=self.on_response,
             auto_ack=True,
         )
-
-    def on_timeout(self, *a, **kw):
-        logger.info('EPP_RPC_Client timeout !!!!!!!!!!!!!!')
-        try: 
-            self.rabbitmq_connection.close()
-        except Exception as exc:
-            logger.error('connection left unclean: %r', repr(exc))
 
     def on_response(self, ch, method, props, body):
         if self.corr_id == props.correlation_id:
@@ -153,6 +146,7 @@ def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connectio
         client.connect()
     return client
 
+#------------------------------------------------------------------------------
 
 def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
                    rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
@@ -182,19 +176,20 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
     When COCCA back-end drops the connection from the server-side - the EPP Gate needs to be "restarted".
     EPP connection must re-login to be able to send and receive XML messages again - this is done inside `rpc_server.py` process.
 
-    You can run EPP Gate via "systemd" service manager and it may consist of 3 units:
+    You can run EPP Gate via "systemd" service manager and it may consist of 3 units (see example files in etc/ sub-folder):
 
-        1. `epp-gate.service` : service which execute `rpc_server.py` script and keep it running all the time
+        1. `epp-gate.service` : service which executes RPC server and keep it running all the time
         2. `epp-gate-watcher.service` : background service which is able to "restart" `epp-gate.service` when needed
         3. `epp-gate-health.path` : systemd trigger which is monitoring `health` file for any modifications
 
-    To indicate that connection is currently down the client part need to print a line in the local `health` file.
-    RPC server process then will be restarted automatically and EPP Gate suppose to become healthy right away.
+    To indicate that connection is currently down the RPC client must print a line in the local `health` file.
+    RPC server process then will be restarted automatically by systemd and EPP Gate suppose to become healthy again.
 
-    We also must "retry" one time the last failed message after Gate restarted,
-    RabbitMQ will deliver response automatically back.
+    We also must "retry" one time the last failed message after EPP Gate being restarted,
+    RabbitMQ will deliver response automatically back to RPC client.
 
-    To enable that functionality pass local file path the `health` file in the `health_marker_filepath` parameter.
+    To enable that functionality pass local file path the `health` file in the `health_marker_filepath` parameter
+    or set environment variable `RPC_CLIENT_HEALTH_FILE` in advance with the path to the local text file.
     """
     global _CachedClient
     try:
@@ -210,11 +205,13 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             raise ValueError('empty response from RPCClient')
     except Exception as exc:
         logger.exception('ERROR from RPCClient')
+        health_marker_filepath = os.environ.get('RPC_CLIENT_HEALTH_FILE', health_marker_filepath)
         if not health_marker_filepath:
+            # if there is no configuration for the health marker file - do not do any retries
             raise exc
         with open(health_marker_filepath, 'a') as fout:
             fout.write('{} at {}\n'.format(exc, time.asctime()))
-        # retry after 2 seconds, EPP Gate suppose to be restarted already
+        # retry after 2 seconds, EPP Gate suppose to be restarted already by systemd service
         time.sleep(2)
         # if the issue is still here it will raise EPPBadResponse() in run() method anyway
         _CachedClient = None
