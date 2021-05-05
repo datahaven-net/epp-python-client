@@ -19,3 +19,7 @@ venv:
 .PHONY: test
 test: venv
 	PYTHONPATH=./src ./venv/bin/pytest -vv --color=yes --capture=no --log-cli-level=DEBUG ./tests
+
+rabbitmq_server_dev:
+	@echo "Starting RabbitMQ server, admin dashboard is avaialble here: http://127.0.0.1:15672"
+	@rabbitmq-server

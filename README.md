@@ -57,7 +57,7 @@ If your application requires stable and reliable connection to the EPP registry 
 
 There is an RPC server and client library included in that repository:
 
-1. when RPC-server starts it first connects to the EPP back-end system via Python client library and holds the connection open after "greeting" and "login" command are processed
+1. when RPC-server starts it first connects to the EPP back-end system via Python client library and holds the connection open after `greeting` and `login` EPP commands are processed
 2. then it connects to the RabbitMQ server to be able to receive and process RPC calls from external applications
 3. it also automatically reconnects to the EPP system when connection is closed on server side
 
@@ -88,7 +88,7 @@ Connection to the RPC server is carried out through RabbitMQ RPC-client, which i
 
 The interface between RPC server and RPC client was built using simple JSON-formatted requests and responses.
 
-RPC client requests consists of two tags that defines EPP command to be sent and requesting parameters - "cmd" and "args":
+RPC client requests consists of two tags that defines the name of the EPP command to be sent and list of input parameters:
 
 	{
         "cmd": "domain_info",
@@ -97,10 +97,10 @@ RPC client requests consists of two tags that defines EPP command to be sent and
         }
     }
 
-Via RabbitMQ service the request is delivered out to the RPC server, which is holding connection to the EPP system and able to
-dispatch the command to the domain name rgistrty server right away.
+Via RabbitMQ service the request is delivered to the RPC server, which is holding connection to the EPP system and able to
+dispatch the command to the domain name rgistry server right away.
 
-There JSON-formatted request is first translated into XML request according to EPP RFC specification by the Python client library.
+The JSON-formatted request is first translated into XML request according to EPP RFC specification by the Python client library.
 Python client also receives response back from the EPP system in XML format. More information about the EPP specification can be found in those papers:
 
 + https://tools.ietf.org/html/rfc5730
@@ -110,6 +110,7 @@ Python client also receives response back from the EPP system in XML format. Mor
 
 
 RPC server translates XML responses from the back-end EPP system into JSON-formatted messages using `xml2json` library: https://gist.github.com/anonymous/4328681
+
 Here is a sample response from `domain info` EPP command request that RPC server sends back to the RPC client via RabbitMQ service:
 
     {"epp": {"@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": "urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd", "response": {"extension": {"infData": {"@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": "urn:ietf:params:xml:ns:rgp-1.0 rgp-1.0.xsd"} }, "resData": {"infData": {"@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": "urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd", "authInfo": {"pw": "Authinfo Incorrect"}, "clID": "Redacted", "contact": [{"#text": "billing01", "@type": "billing"}, {"#text": "admin02", "@type": "admin"}, {"#text": "tech03", "@type": "tech"} ], "crDate": "2020-03-11T09:33:38.698Z", "crID": "Redacted", "exDate": "2024-03-11T09:33:38.756Z", "name": "mydomain.com", "ns": {"hostObj": ["ns1.google.com", "ns2.google.com"] }, "registrant": "registrant01", "roid": "registrar_xyz", "status": {"#text": "Active", "@s": "ok"}, "upDate": "2020-03-17T00:00:00.607Z", "upID": "Redacted"} }, "result": {"@code": "1000", "msg": "Command completed successfully"}, "trID": {"clTRID": "c5bc8f94103f1a47019a09049dff5aec", "svTRID": "1618822341053"}}}}
@@ -117,13 +118,13 @@ Here is a sample response from `domain info` EPP command request that RPC server
 
 ### How to use RPC client
 
-You can pass RabbitMQ connection parameters while making RPC request using input parameters:
+You can pass RabbitMQ connection parameters directly while making RPC request using input parameters:
 
     from epp import rpc_client
     response = rpc_client.cmd_domain_check(
         domains=["domain-possibly-exist.com", "another-domain.com", ],
         rabbitmq_credentials=('localhost', 5672, 'rabbitmq_rpc_client_login', 'rabbitmq_rpc_client_password', ),
-        rabbitmq_queue_name='epp_messages',
+        rabbitmq_queue_name='epp_rpc_messages',
     )
     print(response)
 

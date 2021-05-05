@@ -201,13 +201,13 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
         )
         reply = client.request(json.dumps(json_request))
         if not reply:
-            logger.error('empty response from RPCClient')
-            raise ValueError('empty response from RPCClient')
+            logger.error('empty response from EPP_RPC_Client')
+            raise ValueError('empty response from EPP_RPC_Client')
     except Exception as exc:
-        logger.exception('ERROR from RPCClient')
+        logger.exception('ERROR from EPP_RPC_Client')
         health_marker_filepath = os.environ.get('RPC_CLIENT_HEALTH_FILE', health_marker_filepath)
         if not health_marker_filepath:
-            # if there is no configuration for the health marker file - do not do any retries
+            # if there is no configuration for the health marker file - do not do any retries and just fail
             raise exc
         with open(health_marker_filepath, 'a') as fout:
             fout.write('{} at {}\n'.format(exc, time.asctime()))
