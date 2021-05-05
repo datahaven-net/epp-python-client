@@ -1,0 +1,34 @@
+# EPP Gate wather service configuration.
+#
+# Watcher service suppose to be looking at `/home/user/health` file and be triggered every time that file modified.
+# Then it must restart the main "epp-gate" service right away.
+#
+# Copy and modify `epp-gate-watcher.service` file to your local systemd folder to enable the service:
+#
+#         mkdir -p /home/user/.config/systemd/user/
+#         cd /home/user/epp-python-client/
+#         cp etc/systemd/system/epp-gate-watcher.service.example /home/user/.config/systemd/user/epp-gate-watcher.service
+#         systemctl --user enable epp-gate-watcher.service
+#
+#
+# To start EPP Gate watcher service run such command:
+# 
+#         systemctl --user start epp-gate-watcher.service
+#
+#
+# You can always check current situation with:
+#
+#         systemctl --user status epp-gate-watcher.service
+#
+
+
+[Unit]
+Description=EPPGateWatcher
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl --user restart epp-gate.service
+
+[Install]
+WantedBy=multi-user.target
