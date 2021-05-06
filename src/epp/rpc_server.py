@@ -24,7 +24,7 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Server(object):
 
-    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, verbose=False):
+    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, verbose=False, verbose_poll=False):
         self.epp = None
         self.connection = None
         self.epp_params = epp_params
@@ -32,6 +32,7 @@ class EPP_RPC_Server(object):
         self.queue_name = queue_name
         self.epp_reconnect = epp_reconnect
         self.verbose = verbose
+        self.verbose_poll = verbose_poll
 
     def connect_epp(self):
         logger.info('starting new EPP connection at %r:%r', self.epp_params[0], self.epp_params[1])
@@ -59,7 +60,7 @@ class EPP_RPC_Server(object):
             ))
         self.channel = self.connection.channel()
         logger.info('queue name is: %r', self.queue_name)
-        result = self.channel.queue_declare(queue=self.queue_name)  # , exclusive=True)
+        result = self.channel.queue_declare(queue=self.queue_name)
         self.channel.basic_qos(prefetch_count=1)
         self.callback_queue = result.method.queue
         self.channel.basic_consume(
@@ -106,11 +107,14 @@ class EPP_RPC_Server(object):
     def do_epp_request(self, cmd, args):
         response_xml = None
         if cmd == 'poll_req':
-            response_xml = self.epp.poll_req()
+            response_xml = self.epp.poll_req(
+                quite=(not self.verbose_poll),
+            )
 
         elif cmd == 'poll_ack':
             response_xml = self.epp.poll_ack(
                 msg_id=args['msg_id'],
+                quite=(not self.verbose_poll),
             )
 
         elif cmd == 'host_check':
@@ -234,7 +238,8 @@ class EPP_RPC_Server(object):
 
         try:
             if self.verbose:
-                logger.debug('request: [%s]  %r', cmd, args)
+                if self.verbose_poll or cmd not in ['poll_req', 'poll_ack', ]:
+                    logger.debug('request: [%s]  %r', cmd, args)
             response_xml = self.do_epp_request(cmd, args)
 
         except (epp_client.EPPConnectionAlreadyClosedError, epp_client.EPPResponseEmptyError, ) as exc:
@@ -284,7 +289,8 @@ class EPP_RPC_Server(object):
             msg = str(exc)
 
         if self.verbose:
-            logger.debug('response: [%s] {%s}\n\n', code, msg)
+            if self.verbose_poll or cmd not in ['poll_req', 'poll_ack', ]:
+                logger.debug('response: [%s] {%s}\n\n', code, msg)
         return response_json
 
 #------------------------------------------------------------------------------
@@ -315,6 +321,7 @@ def main():
     )
     p.add_option(
         '--reconnect',
+        '-c',
         action="store_true",
         dest="reconnect",
         help="automatically reconnect to the EPP system when connection was closed on server side",
@@ -325,6 +332,13 @@ def main():
         action="store_true",
         dest="verbose",
         help="enable verbose logging",
+    )
+    p.add_option(
+        '--verbose_poll',
+        '-p',
+        action="store_true",
+        dest="verbose_poll",
+        help="also enable logging for poll requests and responses",
     )
 
     options, _ = p.parse_args()
@@ -343,6 +357,7 @@ def main():
         queue_name=options.queue,
         epp_reconnect=options.reconnect,
         verbose=options.verbose,
+        verbose_poll=options.verbose_poll,
     )
     if not srv.connect_epp():
         return False
