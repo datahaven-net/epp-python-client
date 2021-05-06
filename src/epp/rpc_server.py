@@ -338,8 +338,8 @@ def main():
     logging.getLogger('pika').setLevel(logging.WARNING)
 
     srv = EPP_RPC_Server(
-        epp_params=open(options.epp, 'r').read().split(' '),
-        rabbitmq_params=open(options.rabbitmq, 'r').read().split(' '),
+        epp_params=open(options.epp, 'r').read().strip().split(' '),
+        rabbitmq_params=open(options.rabbitmq, 'r').read().strip().split(' '),
         queue_name=options.queue,
         epp_reconnect=options.reconnect,
         verbose=options.verbose,

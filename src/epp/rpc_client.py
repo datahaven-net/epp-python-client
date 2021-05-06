@@ -52,15 +52,15 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Client(object):
 
-    def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
-        json_conf = {}
+    def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None, json_conf=None):
+        json_conf = json_conf or {}
         if os.environ.get('RPC_CLIENT_CONF'):
             json_conf = json.loads(os.environ['RPC_CLIENT_CONF'])
             logger.info('loaded config from env: RPC_CLIENT_CONF')
         if os.environ.get('RPC_CLIENT_CONF_PATH'):
             json_conf = json.loads(open(os.environ['RPC_CLIENT_CONF_PATH'], 'r').read())
             logger.info('loaded config from env: RPC_CLIENT_CONF_PATH')
-        logger.debug('config: %r', json_conf)
+        logger.debug('RPC client config: %r', json_conf)
         if rabbitmq_credentials:
             self.rabbitmq_host, self.rabbitmq_port, self.rabbitmq_username, self.rabbitmq_password = rabbitmq_credentials
             logger.info('loaded credentials from "rabbitmq_credentials" explicitly')
@@ -72,7 +72,7 @@ class EPP_RPC_Client(object):
         self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 30))
         self.rabbitmq_connection = None
         self.rabbitmq_queue_name = json_conf.get('queue_name', rabbitmq_queue_name) or 'epp_messages'
-        logger.debug('queue name is %r', self.rabbitmq_queue_name)
+        logger.debug('RabbitMQ queue name is %r', self.rabbitmq_queue_name)
         self.channel = None
         self.reply_queue = None
         self.reply = None
@@ -125,7 +125,7 @@ class EPP_RPC_Client(object):
 
 #------------------------------------------------------------------------------
 
-def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
+def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None, json_conf=None):
     global _CachedClient
     if cache_client:
         client = _CachedClient
@@ -134,6 +134,7 @@ def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connectio
                 rabbitmq_credentials=rabbitmq_credentials,
                 rabbitmq_connection_timeout=rabbitmq_connection_timeout,
                 rabbitmq_queue_name=rabbitmq_queue_name,
+                json_conf=json_conf,
             )
             client.connect()
             _CachedClient = client
@@ -142,6 +143,7 @@ def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connectio
             rabbitmq_credentials=rabbitmq_credentials,
             rabbitmq_connection_timeout=rabbitmq_connection_timeout,
             rabbitmq_queue_name=rabbitmq_queue_name,
+            json_conf=json_conf,
         )
         client.connect()
     return client
@@ -149,7 +151,7 @@ def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connectio
 #------------------------------------------------------------------------------
 
 def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
-                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None):
+                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None, json_conf=None):
     """
     Sends EPP message in JSON format towards COCCA back-end via RabbitMQ server.
     Here RabbitMQ is connecting your application with another Python process running `rpc_server.py`, so-called EPP Gate.
@@ -161,7 +163,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
         rabbitmq_connection_timeout=5
 
     Another way to pass sensitive secrets to the client is via environment variable `RPC_CLIENT_CONF_PATH`.
-    Environment variable `RPC_CLIENT_CONF_PATH` must store the local path to a Json-formatted configuration file.
+    Environment variable `RPC_CLIENT_CONF_PATH` must store the local path to a JSON-formatted configuration file.
 
         {
             "host": "localhost",
@@ -198,6 +200,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             rabbitmq_credentials=rabbitmq_credentials,
             rabbitmq_connection_timeout=rabbitmq_connection_timeout,
             rabbitmq_queue_name=rabbitmq_queue_name,
+            json_conf=json_conf,
         )
         reply = client.request(json.dumps(json_request))
         if not reply:
@@ -220,6 +223,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             rabbitmq_credentials=rabbitmq_credentials,
             rabbitmq_connection_timeout=rabbitmq_connection_timeout,
             rabbitmq_queue_name=rabbitmq_queue_name,
+            json_conf=json_conf,
         )
         client.connect()
         reply = client.request(json.dumps(json_request))
