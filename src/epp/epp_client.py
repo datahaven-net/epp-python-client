@@ -176,13 +176,13 @@ class EPPConnection:
             return None
         return ret
 
-    def call(self, cmd, soup=None):
+    def call(self, cmd, soup=None, quite=False):
         if self.write(cmd):
-            if self.verbose:
+            if self.verbose and not quite:
                 logger.debug('sent %d bytes:\n%s\n', len(cmd), cmd)
         raw = self.read()
         if raw:
-            if self.verbose:
+            if self.verbose and not quite:
                 logger.debug('received %d bytes:\n%s', len(raw), raw.decode())
         if soup is True or (self.return_soup is True and soup is not False):
             try:
