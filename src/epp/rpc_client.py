@@ -50,6 +50,11 @@ class XML2JsonOptions(object):
 
 #------------------------------------------------------------------------------
 
+class RPCStreamLostError(Exception):
+    pass
+
+#------------------------------------------------------------------------------
+
 class EPP_RPC_Client(object):
 
     def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None, json_conf=None):
@@ -110,17 +115,22 @@ class EPP_RPC_Client(object):
     def request(self, query):
         self.reply = None
         self.corr_id = str(uuid.uuid4())
-        self.channel.basic_publish(
-            exchange='',
-            routing_key=self.rabbitmq_queue_name,
-            properties=pika.BasicProperties(
-                reply_to=self.reply_queue,
-                correlation_id=self.corr_id,
-            ),
-            body=str(query)
-        )
+        try:
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=self.rabbitmq_queue_name,
+                properties=pika.BasicProperties(
+                    reply_to=self.reply_queue,
+                    correlation_id=self.corr_id,
+                ),
+                body=str(query)
+            )
+        except pika.exceptions.StreamLostError as exc:
+            logger.error('RPC request failed: %r', exc)
+            raise RPCStreamLostError(str(exc))
         while self.reply is None:
             self.rabbitmq_connection.process_data_events()
+        # self.rabbitmq_connection.close()
         return self.reply
 
 #------------------------------------------------------------------------------
@@ -206,6 +216,18 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
         if not reply:
             logger.error('empty response from EPP_RPC_Client')
             raise ValueError('empty response from EPP_RPC_Client')
+    except RPCStreamLostError:
+        logger.warn('RPC stream lost, reconnecting')
+        _CachedClient = None
+        client = make_client(
+            cache_client=cache_client,
+            rabbitmq_credentials=rabbitmq_credentials,
+            rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+            rabbitmq_queue_name=rabbitmq_queue_name,
+            json_conf=json_conf,
+        )
+        client.connect()
+        reply = client.request(json.dumps(json_request))
     except Exception as exc:
         logger.exception('ERROR from EPP_RPC_Client')
         health_marker_filepath = os.environ.get('RPC_CLIENT_HEALTH_FILE', health_marker_filepath)
