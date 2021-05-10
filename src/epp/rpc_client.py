@@ -50,11 +50,6 @@ class XML2JsonOptions(object):
 
 #------------------------------------------------------------------------------
 
-class RPCStreamLostError(Exception):
-    pass
-
-#------------------------------------------------------------------------------
-
 class EPP_RPC_Client(object):
 
     def __init__(self, rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None, json_conf=None):
@@ -75,14 +70,19 @@ class EPP_RPC_Client(object):
             self.rabbitmq_username = json_conf['username']
             self.rabbitmq_password = json_conf['password']
         self.rabbitmq_connection_timeout = int(rabbitmq_connection_timeout or json_conf.get('timeout', 30))
-        self.rabbitmq_connection = None
         self.rabbitmq_queue_name = json_conf.get('queue_name', rabbitmq_queue_name) or 'epp_messages'
         logger.debug('RabbitMQ queue name is %r', self.rabbitmq_queue_name)
+        self.rabbitmq_connection = None
         self.channel = None
         self.reply_queue = None
         self.reply = None
+        self.corr_id = None
 
     def connect(self):
+        self.rabbitmq_connection = None
+        self.channel = None
+        self.reply_queue = None
+        self.reply = None
         try:
             self.rabbitmq_connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
@@ -125,12 +125,20 @@ class EPP_RPC_Client(object):
                 ),
                 body=str(query)
             )
-        except pika.exceptions.StreamLostError as exc:
-            logger.error('RPC request failed: %r', exc)
-            raise RPCStreamLostError(str(exc))
+        except pika.exceptions.StreamLostError:
+            logger.warn('RPC stream lost, reconnecting')
+            self.connect()
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=self.rabbitmq_queue_name,
+                properties=pika.BasicProperties(
+                    reply_to=self.reply_queue,
+                    correlation_id=self.corr_id,
+                ),
+                body=str(query)
+            )
         while self.reply is None:
             self.rabbitmq_connection.process_data_events()
-        # self.rabbitmq_connection.close()
         return self.reply
 
 #------------------------------------------------------------------------------
@@ -216,18 +224,6 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
         if not reply:
             logger.error('empty response from EPP_RPC_Client')
             raise ValueError('empty response from EPP_RPC_Client')
-    except RPCStreamLostError:
-        logger.warn('RPC stream lost, reconnecting')
-        _CachedClient = None
-        client = make_client(
-            cache_client=cache_client,
-            rabbitmq_credentials=rabbitmq_credentials,
-            rabbitmq_connection_timeout=rabbitmq_connection_timeout,
-            rabbitmq_queue_name=rabbitmq_queue_name,
-            json_conf=json_conf,
-        )
-        client.connect()
-        reply = client.request(json.dumps(json_request))
     except Exception as exc:
         logger.exception('ERROR from EPP_RPC_Client')
         health_marker_filepath = os.environ.get('RPC_CLIENT_HEALTH_FILE', health_marker_filepath)
