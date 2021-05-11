@@ -164,7 +164,7 @@ class EPPConnection:
         try:
             self.ssl.send(length)
             ret = self.ssl.send((epp_as_string + "\r\n").encode())
-        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, ) as exc:
+        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, BrokenPipeError, ) as exc:
             if self.verbose:
                 logger.exception('EPP connection already closed')
             raise EPPConnectionAlreadyClosedError(exc)
