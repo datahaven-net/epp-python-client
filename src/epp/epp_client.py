@@ -74,7 +74,7 @@ class EPPConnection:
         self.raise_errors = raise_errors
         self.return_soup = return_soup
 
-    def open(self, timeout=10):
+    def open(self, timeout=15):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(timeout)
         try:
@@ -140,7 +140,7 @@ class EPPConnection:
             if length:
                 i = int_from_net(length, self.format_32) - 4
                 ret = self.ssl.read(i)
-        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, ) as exc:
+        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, BrokenPipeError, socket.timeout, ) as exc:
             if self.verbose:
                 logger.exception('EPP connection already closed')
             raise EPPConnectionAlreadyClosedError(exc)
@@ -164,7 +164,7 @@ class EPPConnection:
         try:
             self.ssl.send(length)
             ret = self.ssl.send((epp_as_string + "\r\n").encode())
-        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, BrokenPipeError, ) as exc:
+        except (ssl.SSLEOFError, ssl.SSLZeroReturnError, BrokenPipeError, socket.timeout, ) as exc:
             if self.verbose:
                 logger.exception('EPP connection already closed')
             raise EPPConnectionAlreadyClosedError(exc)
