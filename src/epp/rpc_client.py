@@ -112,7 +112,7 @@ class EPP_RPC_Client(object):
         if self.corr_id == props.correlation_id:
             self.reply = body
 
-    def request(self, query):
+    def request(self, query, request_time_limit=0):
         self.reply = None
         self.corr_id = str(uuid.uuid4())
         try:
@@ -138,7 +138,9 @@ class EPP_RPC_Client(object):
                 body=str(query)
             )
         while self.reply is None:
-            self.rabbitmq_connection.process_data_events()
+            self.rabbitmq_connection.process_data_events(time_limit=request_time_limit)
+            if not self.reply and request_time_limit:
+                self.reply = '{"error": "EPP request timeout"}'
         return self.reply
 
 #------------------------------------------------------------------------------
@@ -169,7 +171,8 @@ def make_client(cache_client=True, rabbitmq_credentials=None, rabbitmq_connectio
 #------------------------------------------------------------------------------
 
 def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
-                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None, json_conf=None):
+                   rabbitmq_credentials=None, rabbitmq_connection_timeout=None, rabbitmq_queue_name=None,
+                   json_conf=None, request_time_limit=0):
     """
     Sends EPP message in JSON format towards COCCA back-end via RabbitMQ server.
     Here RabbitMQ is connecting your application with another Python process running `rpc_server.py`, so-called EPP Gate.
@@ -220,7 +223,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             rabbitmq_queue_name=rabbitmq_queue_name,
             json_conf=json_conf,
         )
-        reply = client.request(json.dumps(json_request))
+        reply = client.request(json.dumps(json_request), request_time_limit=request_time_limit)
         if not reply:
             logger.error('empty response from EPP_RPC_Client')
             raise ValueError('empty response from EPP_RPC_Client')
@@ -244,7 +247,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             json_conf=json_conf,
         )
         client.connect()
-        reply = client.request(json.dumps(json_request))
+        reply = client.request(json.dumps(json_request), request_time_limit=request_time_limit)
     return reply
 
 #------------------------------------------------------------------------------
@@ -269,21 +272,21 @@ def run(json_request, raise_for_result=True, logs=True, **args):
         raise exc
     except Exception as exc:
         logger.error('epp request failed, unexpected error: %s', traceback.format_exc())
-        raise rpc_error.EPPBadResponse('epp request failed: %r' % exc)
+        raise rpc_error.EPPBadResponse(exc)
 
     if not rpc_response:
         logger.error('empty response from epp_gate, connection error')
-        raise rpc_error.EPPBadResponse('epp request failed: empty response, connection error')
+        raise rpc_error.EPPBadResponse('empty response, connection error')
 
     try:
         json_output = json.loads(rpc_response)
     except Exception as exc:
         logger.exception('epp request failed, response is not readable')
-        raise rpc_error.EPPBadResponse('epp request failed: %s' % exc)
+        raise rpc_error.EPPBadResponse(exc)
 
     output_error = json_output.get('error')
     if output_error:
-        raise rpc_error.EPPBadResponse('epp request processing finished with error: %s' % output_error)
+        raise rpc_error.EPPBadResponse(output_error)
 
     if raise_for_result:
         try:
