@@ -6,7 +6,7 @@ The library provides an interface to the Extensible Provisioning Protocol:
 
 - Python client library for sending/receiving/parsing XML-formatted EPP requests and responses
 - RPC server running as intermediate gateway between consumer application and EPP registry
-- RPC client library written for Python applications to be able to interract with the RPC server
+- RPC client library written for Python applications to be able to interact with the RPC server
 
 
 
@@ -52,8 +52,9 @@ The client is using `beautifulsoup4` to parse XML responses into Python objects.
 
 ### RPC server
 
-It is also possible to use the library in another way using intermediate RabbitMQ queue server.
-If your application requires stable and reliable connection to the EPP registry system and be able to run many EPP requests per minute it is not possible to establish new EPP connection for each request using the only Python client.
+It is also possible to use the library in another way using an intermediate RabbitMQ queue server.
+If your application requires stable and reliable connection to the EPP registry system and be able to run many EPP 
+requests per minute it is not possible to establish new EPP connection for each request using only the Python client.
 
 There is an RPC server and client library included in that repository:
 
