@@ -649,10 +649,10 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
         <create>
             <domain:create xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name>atest51.tld</domain:name>
-                <domain:registrant>registrant02</domain:registrant>
                 <domain:period unit="y">5</domain:period>
                 <domain:ns><domain:hostObj>ns1.google.com</domain:hostObj></domain:ns>
                 <domain:ns><domain:hostObj>ns2.google.com</domain:hostObj></domain:ns>
+                <domain:registrant>registrant02</domain:registrant>
                 <domain:contact type="admin">admin02</domain:contact>
                 <domain:contact type="billing">billing02</domain:contact>
                 <domain:contact type="tech">tech02</domain:contact>
