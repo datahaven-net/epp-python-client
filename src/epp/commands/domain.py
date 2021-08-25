@@ -61,7 +61,7 @@ create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
             <domain:create xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name>%(domain_name)s</domain:name>
                 %(period)s
-                %(nameservers)s
+%(nameservers)s
                 <domain:registrant>%(registrant)s</domain:registrant>
                 %(contact_admin)s
                 %(contact_billing)s
