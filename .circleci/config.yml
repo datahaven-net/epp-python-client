@@ -5,16 +5,15 @@ executors:
       - image: cimg/python:3.8.12
       
 jobs:
-  my-job-name:
+  epp-python-client-job:
 
     executor: my-custom-executor
     steps:
       - checkout
       - run: |
-          # echo Hello, World!
           make clean venv test
 
 workflows:
   my-custom-workflow:
     jobs:
-      - my-job-name
+      - epp-python-client-job
