@@ -4,6 +4,8 @@ import sys
 import logging
 import json
 import optparse
+import socket
+import time
 import pika
 
 #------------------------------------------------------------------------------
@@ -24,7 +26,7 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Server(object):
 
-    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, verbose=False, verbose_poll=False):
+    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, verbose=False, verbose_poll=False, connect_attempts=100):
         self.epp = None
         self.connection = None
         self.epp_params = epp_params
@@ -33,6 +35,7 @@ class EPP_RPC_Server(object):
         self.epp_reconnect = epp_reconnect
         self.verbose = verbose
         self.verbose_poll = verbose_poll
+        self.connect_attempts = connect_attempts
 
     def connect_epp(self):
         logger.info('starting new EPP connection at %r:%r', self.epp_params[0], self.epp_params[1])
@@ -44,9 +47,30 @@ class EPP_RPC_Server(object):
             raise_errors=True,
             verbose=self.verbose,
         )
-        if not self.epp.open():
+        result = None
+        try:
+            result = self.epp.open()
+        except socket.timeout:
+            logger.exception('socket SSL timeout')
+            if not self.connect_attempts:
+                return False
+        if result:
+            return True
+        if not self.connect_attempts:
             return False
-        return True
+        while self.connect_attempts:
+            self.connect_attempts -= 1
+            logger.critical('retrying establishing connection with EPP host')
+            try:
+                result = self.epp.open()
+            except socket.timeout:
+                logger.exception('socket SSL timeout')
+                time.sleep(2.0)
+                continue
+            if result:
+                return True
+            time.sleep(2.0)
+        return False
 
     def connect_rabbitmq(self):
         logger.info('starting new connection with the queue service at %r:%r', self.rabbitmq_params[0], self.rabbitmq_params[1])

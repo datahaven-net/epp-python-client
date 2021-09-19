@@ -134,6 +134,8 @@ class EPPConnection:
         return True
 
     def read(self):
+        if not self.ssl:
+            raise EPPConnectionAlreadyClosedError(Exception('ssl channel disconnected'))
         ret = None
         try:
             length = self.ssl.read(4)
@@ -157,6 +159,8 @@ class EPPConnection:
         return ret
 
     def write(self, xml):
+        if not self.ssl:
+            raise EPPConnectionAlreadyClosedError(Exception('ssl channel disconnected'))
         epp_as_string = xml
         # +4 for the length field itself (section 4 mandates that)
         # +2 for the CRLF at the end
