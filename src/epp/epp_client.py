@@ -4,6 +4,7 @@ import ssl
 import struct
 import hashlib
 import time
+import re
 
 from bs4 import BeautifulSoup
 
@@ -56,12 +57,20 @@ class EPPConnectionAlreadyClosedError(Exception):
 class EPPResponseEmptyError(Exception):
     pass
 
+
+class EPPRequestFailedError(Exception):
+    pass
+
+
+class EPPStreamSequenceBrokenError(Exception):
+    pass
+
 #------------------------------------------------------------------------------
 
 
 class EPPConnection:
 
-    def __init__(self, host, port, user, password, verbose=False, raise_errors=False, return_soup=None):
+    def __init__(self, host, port, user, password, verbose=False, raise_errors=True, return_soup=None):
         self.host = host
         self.port = int(port)
         self.user = user
@@ -73,6 +82,7 @@ class EPPConnection:
         self.verbose = verbose
         self.raise_errors = raise_errors
         self.return_soup = return_soup
+        self.cltrid_regexp = re.compile(r'<clTRID>(\w+?)</clTRID>')
 
     def open(self, timeout=15):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -152,7 +162,7 @@ class EPPConnection:
             if self.verbose:
                 logger.exception('failed to receive EPP response')
             return None
-        if ret is None:
+        if not ret:
             if self.verbose:
                 logger.error('nothing was received from EPP connection')
             raise EPPResponseEmptyError()
@@ -181,13 +191,30 @@ class EPPConnection:
         return ret
 
     def call(self, cmd, soup=None, quite=False):
+        cltrid_request = ''
+        r_req = self.cltrid_regexp.search(cmd)
+        if r_req:
+            cltrid_request = r_req.group(1)
         if self.write(cmd):
             if self.verbose and not quite:
-                logger.debug('sent %d bytes:\n%s\n', len(cmd), cmd)
+                logger.debug('sent %d bytes [%s]:\n%s\n', len(cmd), cltrid_request, cmd)
+        else:
+            if self.verbose:
+                logger.exception('failed to send EPP request')
+            raise EPPRequestFailedError()
         raw = self.read()
-        if raw:
-            if self.verbose and not quite:
-                logger.debug('received %d bytes:\n%s', len(raw), raw.decode())
+        if not raw:
+            if self.verbose:
+                logger.exception('received empty EPP response')
+            return ''
+        cltrid_response = ''
+        r_resp = self.cltrid_regexp.search(raw.decode())
+        if r_resp:
+            cltrid_response = r_resp.group(1)
+        if self.verbose and not quite:
+            logger.debug('received %d bytes [%s]:\n%s', len(raw), cltrid_response, raw.decode())
+        if cltrid_request and cltrid_response and cltrid_request != cltrid_response:
+            raise EPPStreamSequenceBrokenError()
         if soup is True or (self.return_soup is True and soup is not False):
             try:
                 soup = BeautifulSoup(raw, "lxml")

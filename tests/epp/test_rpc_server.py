@@ -80,21 +80,21 @@ class TestEPP_RPC_Server(object):
     def test_bad_rpc_request(self):
         assert srv().do_process_epp_command(
             {'bad': 'request'}
-        )['error'] == "failed reading epp request: KeyError('cmd')"
+        )['error'] == "failed reading EPP request: KeyError('cmd')"
 
     def test_unknown_command(self):
         assert srv(
             xml_response='bad response'
         ).do_process_epp_command(
             {'cmd': 'something_crazy'}
-        )['error'] == "unknown command: 'something_crazy'"
+        )['error'] == "unknown command or empty response received: 'something_crazy'"
 
     def test_bad_rpc_response(self):
         assert srv(
             xml_response='bad response'
         ).do_process_epp_command(
             {'cmd': 'poll_req'}
-        )['error'] == "failed reading epp response: ParseError('syntax error: line 1, column 0')"
+        )['error'] == "failed reading EPP response: ParseError('syntax error: line 1, column 0')"
 
     def test_cmd_poll_req(self):
         verify_cmd(
@@ -514,12 +514,12 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd">
             xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
 <response><result code="1000"><msg>Command completed successfully</msg></result><msgQ count="2" id="786"/>
-<trID><clTRID>13ed22ad5eea887a64688edf51db893b</clTRID><svTRID>1618921358722</svTRID></trID></response></epp>''',
+<trID><clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID><svTRID>1618921358722</svTRID></trID></response></epp>''',
             json_response={'epp': {
                 '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
                 'response': {'msgQ': {'@count': '2', '@id': '786'},
                      'result': {'@code': '1000', 'msg': 'Command completed successfully'},
-                     'trID': {'clTRID': '13ed22ad5eea887a64688edf51db893b', 'svTRID': '1618921358722'}, },
+                     'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1618921358722'}, },
             }, },
         )
 
@@ -802,13 +802,13 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
             xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
 <response><result code="1000"><msg>Command completed successfully</msg></result><msgQ count="2" id="786"/>
-<trID><clTRID>dd8f602b0de383fcf4a63ee89f8bc3ca</clTRID><svTRID>1619202519557</svTRID></trID></response></epp>''',
+<trID><clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID><svTRID>1619202519557</svTRID></trID></response></epp>''',
             json_response={'epp': {
                 '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
                 'response': {'msgQ': {
                     '@count': '2', '@id': '786'},
                 'result': {'@code': '1000', 'msg': 'Command completed successfully'},
-                'trID': {'clTRID': 'dd8f602b0de383fcf4a63ee89f8bc3ca', 'svTRID': '1619202519557'}, },
+                'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1619202519557'}, },
             }, },
         )
 

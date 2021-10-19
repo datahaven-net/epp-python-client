@@ -257,20 +257,24 @@ class EPP_RPC_Server(object):
             cmd = request_json['cmd']
             args = request_json.get('args', {})
         except KeyError as exc:
-            logger.exception('failed processing epp command')
-            return {'error': 'failed reading epp request: %r' % exc, }
+            logger.exception('failed processing EPP command')
+            return {'error': 'failed reading EPP request: %r' % exc, }
 
         try:
             if self.verbose:
                 if self.verbose_poll or cmd not in ['poll_req', 'poll_ack', ]:
                     logger.debug('request: [%s]  %r', cmd, args)
             response_xml = self.do_epp_request(cmd, args)
-
-        except (epp_client.EPPConnectionAlreadyClosedError, epp_client.EPPResponseEmptyError, ) as exc:
+        except (
+            epp_client.EPPConnectionAlreadyClosedError,
+            epp_client.EPPResponseEmptyError,
+            epp_client.EPPRequestFailedError,
+            epp_client.EPPStreamSequenceBrokenError,
+        ) as exc:
             if not self.epp_reconnect:
                 if self.verbose:
                     logger.critical('EPP connection closed: %r', exc)
-                return {'error': 'failed processing epp command: %r' % exc, }
+                return {'error': 'failed processing EPP command: %r' % exc, }
             if self.verbose:
                 logger.critical('about to restart EPP connection, because of %r', exc)
             try:
@@ -281,16 +285,16 @@ class EPP_RPC_Server(object):
                 self.connect_epp()
                 response_xml = self.do_epp_request(cmd, args)
             except Exception as exc:
-                logger.exception('epp command retry failed')
-                return {'error': 'failed processing epp command: %r' % exc, }
+                logger.exception('EPP command retry failed')
+                return {'error': 'failed processing EPP command: %r' % exc, }
 
         except Exception as exc:
-            logger.exception('failed processing epp command')
-            return {'error': 'failed processing epp command: %r' % exc, }
+            logger.exception('failed processing EPP command')
+            return {'error': 'failed processing EPP command: %r' % exc, }
 
-        if response_xml is None:
-            logger.error('UNKNOWN COMMAND: %r', cmd)
-            return {'error': 'unknown command: %r' % cmd, }
+        if not response_xml:
+            logger.exception('unknown command or empty response received: %r', cmd)
+            return {'error': 'unknown command or empty response received: %r' % cmd, }
 
         try:
             response_json = json.loads(xml2json.xml2json(response_xml, XML2JsonOptions(), strip_ns=1, strip=1))
@@ -300,10 +304,10 @@ class EPP_RPC_Server(object):
                 response_json = json.loads(xml2json.xml2json(response_xml.encode('ascii', errors='ignore'), XML2JsonOptions(), strip_ns=1, strip=1))
             except Exception as exc:
                 logger.exception('xml2json failed')
-                return {'error': 'failed reading epp response: %r' % exc, }
+                return {'error': 'failed reading EPP response: %r' % exc, }
         except Exception as exc:
-            logger.exception('failed reading epp response')
-            return {'error': 'failed reading epp response: %r' % exc, }
+            logger.exception('failed reading EPP response')
+            return {'error': 'failed reading EPP response: %r' % exc, }
 
         try:
             code = response_json['epp']['response']['result']['@code']
