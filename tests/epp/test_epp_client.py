@@ -42,6 +42,18 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd"><response><resul
 <trID><svTRID>1618663648910</svTRID></trID></response></epp>'''
 
 
+sample_domain_check_command_response = b'''<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd"><response><result code="1000">
+<msg>Command completed successfully</msg></result>
+<resData><domain:chkData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"
+xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">
+<domain:cd><domain:name avail="0">test.com</domain:name><domain:reason>(00) The domain exists</domain:reason>
+</domain:cd></domain:chkData></resData><trID>
+<clTRID>bde35ab00a221ebc0e557c3d6fd6b693</clTRID><svTRID>1634623283678</svTRID></trID></response></epp>
+'''
+
+
 def conn():
     logging.getLogger('epp.client').setLevel(logging.DEBUG)
     return epp_client.EPPConnection(
@@ -188,3 +200,55 @@ class TestEPPConnection(object):
         assert resp.find('result').get('code') == '2000'
         assert resp.find('msg').text == 'Unknown command'
         assert c.close() is True
+
+    @mock.patch('socket.socket.connect')
+    @mock.patch('ssl.wrap_socket')
+    def test_call_cltrid_is_matching(self, mock_wrap_socket, mock_socket_connect):
+        mock_socket_connect.return_value = True
+        fake_stream = io.BytesIO(
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response) +
+            fake_response(sample_domain_check_command_response) +
+            fake_response(sample_logout_response))
+        setattr(fake_stream, 'send', lambda _: True)
+        mock_wrap_socket.return_value = fake_stream
+        c = conn()
+        assert c.open() is True
+        assert c.call(cmd='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <check>
+            <domain:check xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>test.com</domain:name>
+            </domain:check>
+        </check>
+        <clTRID>bde35ab00a221ebc0e557c3d6fd6b693</clTRID>
+    </command>
+</epp>''') == sample_domain_check_command_response
+        assert c.close() is True
+
+    @mock.patch('socket.socket.connect')
+    @mock.patch('ssl.wrap_socket')
+    def test_call_cltrid_missmatch(self, mock_wrap_socket, mock_socket_connect):
+        mock_socket_connect.return_value = True
+        fake_stream = io.BytesIO(
+            fake_response(sample_greeting) +
+            fake_response(sample_login_response) +
+            fake_response(sample_domain_check_command_response) +
+            fake_response(sample_logout_response))
+        setattr(fake_stream, 'send', lambda _: True)
+        mock_wrap_socket.return_value = fake_stream
+        c = conn()
+        assert c.open() is True
+        with pytest.raises(epp_client.EPPStreamSequenceBrokenError):
+            c.call(cmd='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <check>
+            <domain:check xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>test.com</domain:name>
+            </domain:check>
+        </check>
+        <clTRID>bde35ab00a221ebc0e557c3d6fd6b693isdifferent</clTRID>
+    </command>
+</epp>''')
