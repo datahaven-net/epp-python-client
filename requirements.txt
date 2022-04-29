@@ -12,3 +12,4 @@ pyparsing==2.4.7
 pytest==6.2.3
 soupsieve==2.2.1
 toml==0.10.2
+sentry-sdk==1.5.10
