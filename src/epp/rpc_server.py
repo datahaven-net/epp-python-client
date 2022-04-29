@@ -368,6 +368,12 @@ def main():
         dest="verbose_poll",
         help="also enable logging for poll requests and responses",
     )
+    p.add_option(
+        '--sentry_dsn',
+        '-s',
+        help="Sentry DSN url to enable error reporting to remote system",
+        default="",
+    )
 
     options, _ = p.parse_args()
 
@@ -378,6 +384,18 @@ def main():
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     logging.getLogger('pika').setLevel(logging.WARNING)
+
+    if options.sentry_dsn:
+        import sentry_sdk
+        from sentry_sdk.integrations.logging import LoggingIntegration
+        sentry_logging = LoggingIntegration(
+            level=logging.INFO,
+            event_level=logging.ERROR,
+        )
+        sentry_sdk.init(
+            dsn=options.sentry_dsn,
+            integrations=[sentry_logging, ],
+        )
 
     srv = EPP_RPC_Server(
         epp_params=open(options.epp, 'r').read().strip().split(' '),
