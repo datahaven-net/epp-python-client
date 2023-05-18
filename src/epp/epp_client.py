@@ -58,6 +58,10 @@ class EPPResponseEmptyError(Exception):
     pass
 
 
+class EPPResponseDecodeError(Exception):
+    pass
+
+
 class EPPRequestFailedError(Exception):
     pass
 
@@ -211,15 +215,19 @@ class EPPConnection:
             if self.verbose:
                 logger.exception('received empty EPP response')
             return ''
+        try:
+            raw_str = raw.decode()
+        except:
+            raise EPPResponseDecodeError()
         cltrid_response = ''
-        r_resp = self.cltrid_regexp.search(raw.decode())
+        r_resp = self.cltrid_regexp.search(raw_str)
         if r_resp:
             cltrid_response = r_resp.group(1)
         if self.verbose and not quite:
-            logger.debug('received %d bytes [%s]:\n%s', len(raw), cltrid_response, raw.decode())
+            logger.debug('received %d bytes [%s]:\n%s', len(raw), cltrid_response, raw_str)
         if cltrid_request and cltrid_response and cltrid_request != cltrid_response:
             raise EPPStreamSequenceBrokenError()
-        if 'Command use error' in raw and 'EPP login failed' in raw:
+        if 'Command use error' in raw_str and 'EPP login failed' in raw_str:
             raise EPPLoginFailedError()
         if soup is True or (self.return_soup is True and soup is not False):
             try:
@@ -235,7 +243,7 @@ class EPPConnection:
                     logger.exception('failed to read EPP response command')
                 return ''
             return soup
-        return raw or ''
+        return raw or b''
 
     #------------------------------------------------------------------------------
 
