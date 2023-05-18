@@ -6,7 +6,7 @@ import hashlib
 import time
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  # @UnresolvedImport
 
 #------------------------------------------------------------------------------
 
@@ -65,6 +65,10 @@ class EPPRequestFailedError(Exception):
 class EPPStreamSequenceBrokenError(Exception):
     pass
 
+
+class EPPLoginFailedError(Exception):
+    pass
+
 #------------------------------------------------------------------------------
 
 
@@ -89,11 +93,11 @@ class EPPConnection:
         self.socket.settimeout(timeout)
         try:
             self.socket.connect((self.host, self.port))
-        except ConnectionRefusedError as exc:
+        except Exception as exc:
             if self.raise_errors:
                 raise exc
             if self.verbose:
-                logger.exception('connection refused')
+                logger.exception('connection error')
             return False
         try:
             self.ssl = ssl.wrap_socket(self.socket)
@@ -215,6 +219,8 @@ class EPPConnection:
             logger.debug('received %d bytes [%s]:\n%s', len(raw), cltrid_response, raw.decode())
         if cltrid_request and cltrid_response and cltrid_request != cltrid_response:
             raise EPPStreamSequenceBrokenError()
+        if 'Command use error' in raw and 'EPP login failed' in raw:
+            raise EPPLoginFailedError()
         if soup is True or (self.return_soup is True and soup is not False):
             try:
                 soup = BeautifulSoup(raw, "lxml")

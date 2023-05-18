@@ -270,6 +270,7 @@ class EPP_RPC_Server(object):
             epp_client.EPPResponseEmptyError,
             epp_client.EPPRequestFailedError,
             epp_client.EPPStreamSequenceBrokenError,
+            epp_client.EPPLoginFailedError,
         ) as exc:
             if not self.epp_reconnect:
                 if self.verbose:

@@ -107,6 +107,7 @@ class EPP_RPC_Client(object):
             on_message_callback=self.on_response,
             auto_ack=True,
         )
+        logger.debug('RabbitMQ channel connected, reply_queue: %r', self.reply_queue)
 
     def on_response(self, ch, method, props, body):
         if self.corr_id == props.correlation_id:
@@ -135,7 +136,7 @@ class EPP_RPC_Client(object):
                     reply_to=self.reply_queue,
                     correlation_id=self.corr_id,
                 ),
-                body=str(query)
+                body=str(query),
             )
         while self.reply is None:
             self.rabbitmq_connection.process_data_events(time_limit=request_time_limit)

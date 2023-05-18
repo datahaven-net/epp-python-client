@@ -57,6 +57,10 @@ class EPPRequiredParameterMissing(EPPError):
     code = 2003
 
 
+class EPPParameterValueSyntaxError(EPPError):
+    code = 2005
+
+
 class EPPObjectExists(EPPError):
     code = 2302
 
@@ -93,6 +97,8 @@ def exception_from_response(response, message=None, code=None):
         return EPPCommandUseError(response=response, message=message)
     elif code == 2003:
         return EPPRequiredParameterMissing(response=response, message=message)
+    elif code == 2005:
+        return EPPParameterValueSyntaxError(response=response, message=message)
     elif code == 2201:
         return EPPAuthorizationError(response=response, message=message)
     elif code == 2302:
