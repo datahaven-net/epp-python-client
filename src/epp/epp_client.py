@@ -6,7 +6,7 @@ import hashlib
 import time
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  # @UnresolvedImport
 
 #------------------------------------------------------------------------------
 
@@ -58,11 +58,19 @@ class EPPResponseEmptyError(Exception):
     pass
 
 
+class EPPResponseDecodeError(Exception):
+    pass
+
+
 class EPPRequestFailedError(Exception):
     pass
 
 
 class EPPStreamSequenceBrokenError(Exception):
+    pass
+
+
+class EPPLoginFailedError(Exception):
     pass
 
 #------------------------------------------------------------------------------
@@ -89,11 +97,11 @@ class EPPConnection:
         self.socket.settimeout(timeout)
         try:
             self.socket.connect((self.host, self.port))
-        except ConnectionRefusedError as exc:
+        except Exception as exc:
             if self.raise_errors:
                 raise exc
             if self.verbose:
-                logger.exception('connection refused')
+                logger.exception('connection error')
             return False
         try:
             self.ssl = ssl.wrap_socket(self.socket)
@@ -207,14 +215,20 @@ class EPPConnection:
             if self.verbose:
                 logger.exception('received empty EPP response')
             return ''
+        try:
+            raw_str = raw.decode()
+        except:
+            raise EPPResponseDecodeError()
         cltrid_response = ''
-        r_resp = self.cltrid_regexp.search(raw.decode())
+        r_resp = self.cltrid_regexp.search(raw_str)
         if r_resp:
             cltrid_response = r_resp.group(1)
         if self.verbose and not quite:
-            logger.debug('received %d bytes [%s]:\n%s', len(raw), cltrid_response, raw.decode())
+            logger.debug('received %d bytes [%s]:\n%s', len(raw), cltrid_response, raw_str)
         if cltrid_request and cltrid_response and cltrid_request != cltrid_response:
             raise EPPStreamSequenceBrokenError()
+        if 'Command use error' in raw_str and 'EPP login failed' in raw_str:
+            raise EPPLoginFailedError()
         if soup is True or (self.return_soup is True and soup is not False):
             try:
                 soup = BeautifulSoup(raw, "lxml")
@@ -229,7 +243,7 @@ class EPPConnection:
                     logger.exception('failed to read EPP response command')
                 return ''
             return soup
-        return raw or ''
+        return raw or b''
 
     #------------------------------------------------------------------------------
 
