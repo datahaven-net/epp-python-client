@@ -78,11 +78,14 @@ class EPPLoginFailedError(Exception):
 
 class EPPConnection:
 
-    def __init__(self, host, port, user, password, verbose=False, raise_errors=True, return_soup=None):
+    def __init__(self, host, port, user, password, cert_path=None, key_path=None, cert_password=None, verbose=False, raise_errors=True, return_soup=None):
         self.host = host
         self.port = int(port)
         self.user = user
         self.password = password
+        self.cert_path = cert_path  # Path to the client certificate
+        self.key_path = key_path  # Path to the private key
+        self.cert_password = cert_password  # Password for the private key, if any
         self.socket = None
         self.ssl = None
         self.version = None
@@ -104,7 +107,19 @@ class EPPConnection:
                 logger.exception('connection error')
             return False
         try:
-            self.ssl = ssl.wrap_socket(self.socket)
+            if self.cert_path and self.key_path:
+                # Create an SSL context
+                ssl_context = SSLContext(PROTOCOL_TLS_CLIENT)
+                # Load the client certificate and the key
+                ssl_context.load_cert_chain(certfile=self.cert_path, keyfile=self.key_path, password=self.cert_password)
+                # Remove warnings (Be careful)
+                #ssl_context.check_hostname = False #optional - ***insecure***
+                #ssl_context.verify_mode = ssl.CERT_NONE #optional - ***insecure***
+                # Wrap the socket with SSL
+                self.ssl = ssl_context.wrap_socket(self.socket, server_hostname=self.host)
+            else:
+                # If no cert_path and key_path provided, use default SSL wrapping
+                self.ssl = ssl.wrap_socket(self.socket)
         except socket.error as exc:
             if self.raise_errors:
                 raise exc
