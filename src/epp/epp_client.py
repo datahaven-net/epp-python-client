@@ -78,7 +78,7 @@ class EPPLoginFailedError(Exception):
 
 class EPPConnection:
 
-    def __init__(self, host, port, user, password, cert_path, key_path, cert_password=None, verbose=False, raise_errors=True, return_soup=None):
+    def __init__(self, host, port, user, password, cert_path=None, key_path=None, cert_password=None, verbose=False, raise_errors=True, return_soup=None):
         self.host = host
         self.port = int(port)
         self.user = user
@@ -112,9 +112,9 @@ class EPPConnection:
                 ssl_context = SSLContext(PROTOCOL_TLS_CLIENT)
                 # Load the client certificate and the key
                 ssl_context.load_cert_chain(certfile=self.cert_path, keyfile=self.key_path, password=self.cert_password)
-                # Remove warnings
-                #ssl_context.check_hostname = False #optional - insecure
-                #ssl_context.verify_mode = ssl.CERT_NONE #optional - insecure
+                # Remove warnings (Be careful)
+                #ssl_context.check_hostname = False #optional - ***insecure***
+                #ssl_context.verify_mode = ssl.CERT_NONE #optional - ***insecure***
                 # Wrap the socket with SSL
                 self.ssl = ssl_context.wrap_socket(self.socket, server_hostname=self.host)
             else:
