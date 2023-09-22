@@ -139,7 +139,11 @@ class EPP_RPC_Client(object):
                 body=str(query),
             )
         while self.reply is None:
-            self.rabbitmq_connection.process_data_events(time_limit=request_time_limit)
+            try:
+                self.rabbitmq_connection.process_data_events(time_limit=request_time_limit)
+            except Exception as e:
+                logger.exception('Error from RabbitMQ.process_data_events')
+                self.reply = '{"error": "EPP request processing failed: %s"}' % e
             if not self.reply and request_time_limit:
                 self.reply = '{"error": "EPP request timeout"}'
         return self.reply
