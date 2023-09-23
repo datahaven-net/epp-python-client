@@ -7,6 +7,11 @@ import optparse
 import socket
 import time
 import pika
+import ssl
+import smtplib
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 #------------------------------------------------------------------------------
 
@@ -26,18 +31,41 @@ class XML2JsonOptions(object):
 
 class EPP_RPC_Server(object):
 
-    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, verbose=False, verbose_poll=False, connect_attempts=100):
+    def __init__(self, epp_params, rabbitmq_params, queue_name, epp_reconnect=False, alert_email_config=None, verbose=False, verbose_poll=False, connect_attempts=100):
         self.epp = None
         self.connection = None
         self.epp_params = epp_params
         self.rabbitmq_params = rabbitmq_params
         self.queue_name = queue_name
         self.epp_reconnect = epp_reconnect
+        self.alert_email_config = alert_email_config
         self.verbose = verbose
         self.verbose_poll = verbose_poll
         self.connect_attempts = connect_attempts
 
+    def send_email_notification(self, subject, text):
+        smtp_info = self.alert_email_config
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = smtp_info['from']
+        message["To"] = smtp_info['to']
+        message.attach(MIMEText(time.asctime() + ': ' + text, "plain"))
+        try:
+            server = smtplib.SMTP(smtp_info['host'], smtp_info['port'])
+            # server.set_debuglevel(1)
+            server.ehlo()
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+            server.login(smtp_info['user'], smtp_info['password'])
+            server.sendmail(smtp_info['from'], smtp_info['to'], message.as_string())
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+        finally:
+            server.quit()
+
     def connect_epp(self):
+        self.connect_attempts = 0
         logger.info('starting new EPP connection at %r:%r', self.epp_params[0], self.epp_params[1])
         self.epp = epp_client.EPPConnection(
             host=self.epp_params[0],
@@ -53,10 +81,17 @@ class EPP_RPC_Server(object):
         except socket.timeout:
             logger.exception('socket SSL timeout')
             if not self.connect_attempts:
+                if self.alert_email_config:
+                    self.send_email_notification('EPP connection alert', 'Connection attempts exceeded after SSL socket timeout')
                 return False
         if result:
+            if self.alert_email_config:
+                self.send_email_notification('EPP connection alert', 'Connection established successfully after %d attempts' % self.connect_attempts)
+            self.connect_attempts = 0
             return True
         if not self.connect_attempts:
+            if self.alert_email_config:
+                self.send_email_notification('EPP connection alert', 'Connection attempts exceeded')
             return False
         while self.connect_attempts:
             self.connect_attempts -= 1
@@ -68,8 +103,13 @@ class EPP_RPC_Server(object):
                 time.sleep(2.0)
                 continue
             if result:
+                if self.alert_email_config:
+                    self.send_email_notification('EPP connection alert', 'Connection established successfully after %d attempts' % self.connect_attempts)
+                self.connect_attempts = 0
                 return True
             time.sleep(2.0)
+        if self.alert_email_config:
+            self.send_email_notification('EPP connection alert', 'Connection attempts exceeded')
         return False
 
     def connect_rabbitmq(self):
@@ -376,6 +416,12 @@ def main():
         help="Sentry DSN url to enable error reporting to remote system",
         default="",
     )
+    p.add_option(
+        '--alert_email_config',
+        '-a',
+        help='if priveded, file path with JSON-formatted SMTP server details for email alerts',
+        default="",
+    )
 
     options, _ = p.parse_args()
 
@@ -388,8 +434,8 @@ def main():
     logging.getLogger('pika').setLevel(logging.WARNING)
 
     if options.sentry_dsn:
-        import sentry_sdk
-        from sentry_sdk.integrations.logging import LoggingIntegration
+        import sentry_sdk  # @UnresolvedImport
+        from sentry_sdk.integrations.logging import LoggingIntegration  # @UnresolvedImport
         sentry_logging = LoggingIntegration(
             level=logging.INFO,
             event_level=logging.ERROR,
@@ -404,6 +450,7 @@ def main():
         rabbitmq_params=open(options.rabbitmq, 'r').read().strip().split(' '),
         queue_name=options.queue,
         epp_reconnect=options.reconnect,
+        alert_email_config=json.loads(open(options.alert_email_config).read()) if options.alert_email_config else None,
         verbose=options.verbose,
         verbose_poll=options.verbose_poll,
     )
