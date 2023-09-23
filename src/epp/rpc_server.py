@@ -454,10 +454,13 @@ def main():
         verbose=options.verbose,
         verbose_poll=options.verbose_poll,
     )
+
     if not srv.connect_epp():
         return False
+
     if not srv.connect_rabbitmq():
         return False
+
     return srv.run()
 
 #------------------------------------------------------------------------------
