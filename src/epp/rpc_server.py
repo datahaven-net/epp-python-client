@@ -419,7 +419,7 @@ def main():
     p.add_option(
         '--alert_email_config',
         '-a',
-        help='if priveded, file path with JSON-formatted SMTP server details for email alerts',
+        help='file path with JSON-formatted SMTP server details for email alerts',
         default="",
     )
 
