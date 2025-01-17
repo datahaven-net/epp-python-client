@@ -5,8 +5,15 @@ import struct
 import hashlib
 import time
 import re
+import warnings
 
 from bs4 import BeautifulSoup  # @UnresolvedImport
+
+try:
+    from bs4.builder import XMLParsedAsHTMLWarning  # @UnresolvedImport
+    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+except:
+    pass
 
 #------------------------------------------------------------------------------
 
@@ -109,7 +116,7 @@ class EPPConnection:
         try:
             if self.cert_path and self.key_path:
                 # Create an SSL context
-                ssl_context = SSLContext(PROTOCOL_TLS_CLIENT)
+                ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                 # Load the client certificate and the key
                 ssl_context.load_cert_chain(certfile=self.cert_path, keyfile=self.key_path, password=self.cert_password)
                 # Remove warnings (Be careful)
@@ -444,9 +451,9 @@ class EPPConnection:
             cltrid=make_cltrid(),
             domain_name=domain_name,
             registrant=registrant,
-            nameservers='\n'.join([
+            nameservers=(commands.domain.multiple_nameservers % ('\n'.join([
                 commands.domain.single_nameserver % ns for ns in nameservers
-            ]),
+            ]))) if nameservers else '',
             period='' if period is None else commands.domain.period % dict(value=period, units=period_units or 'y'),
             contact_admin='' if not contact_admin else commands.domain.single_contact1 % dict(type='admin', id=contact_admin),
             contact_billing='' if not contact_billing else commands.domain.single_contact1 % dict(type='billing', id=contact_billing),
@@ -475,12 +482,12 @@ class EPPConnection:
             cltrid=make_cltrid(),
             domain_name=domain_name,
             auth_info='' if not auth_info else commands.domain.auth_info2 % auth_info,
-            add_nameservers='\n'.join([
+            add_nameservers=(commands.domain.multiple_nameservers2 % ('\n'.join([
                 commands.domain.single_nameserver2 % ns for ns in add_nameservers
-            ]),
-            remove_nameservers='\n'.join([
+            ]))) if add_nameservers else '',
+            remove_nameservers=(commands.domain.multiple_nameservers2 % ('\n'.join([
                 commands.domain.single_nameserver2 % ns for ns in remove_nameservers
-            ]),
+            ]))) if remove_nameservers else '',
             add_contacts='\n'.join([
                 commands.domain.single_contact2 % c for c in add_contacts
             ]),

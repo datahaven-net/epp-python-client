@@ -650,8 +650,10 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
             <domain:create xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name>atest51.tld</domain:name>
                 <domain:period unit="y">5</domain:period>
-                <domain:ns><domain:hostObj>ns1.google.com</domain:hostObj></domain:ns>
-                <domain:ns><domain:hostObj>ns2.google.com</domain:hostObj></domain:ns>
+                <domain:ns>
+                    <domain:hostObj>ns1.google.com</domain:hostObj>
+                    <domain:hostObj>ns2.google.com</domain:hostObj>
+                </domain:ns>
                 <domain:registrant>registrant02</domain:registrant>
                 <domain:contact type="admin">admin02</domain:contact>
                 <domain:contact type="billing">billing02</domain:contact>
@@ -740,7 +742,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                     'name': 'atest51.tld',
                     'change_registrant': 'registrant03',
                     'add_nameservers': ['ns3.google.com', ],
-                    'remove_nameservers': ['ns2.google.com', ],
+                    'remove_nameservers': ['ns2.google.com', 'ns3.google.com', ],
                     'rgp_restore_report': {
                         'pre_data': 'Pre-delete registration data not provided',
                         'post_data': 'Post-restore registration data not provided',
@@ -767,11 +769,16 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
             <domain:update xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
                 <domain:name>atest51.tld</domain:name>
                 <domain:add>
-                    <domain:ns><domain:hostObj>ns3.google.com</domain:hostObj></domain:ns>
+                    <domain:ns>
+                        <domain:hostObj>ns3.google.com</domain:hostObj>
+                    </domain:ns>
                     <domain:contact type="admin">admin03</domain:contact>
                 </domain:add>
                 <domain:rem>
-                    <domain:ns><domain:hostObj>ns2.google.com</domain:hostObj></domain:ns>
+                    <domain:ns>
+                        <domain:hostObj>ns2.google.com</domain:hostObj>
+                        <domain:hostObj>ns3.google.com</domain:hostObj>
+                    </domain:ns>
                     <domain:contact type="tech">tech02</domain:contact>
                 </domain:rem>
                 <domain:chg>
