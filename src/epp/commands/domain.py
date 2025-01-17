@@ -1,22 +1,25 @@
 single = "<domain:name>%s</domain:name>"
 
-
 single_contact1 = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
 
 single_contact2 = '                    <domain:contact type="%(type)s">%(id)s</domain:contact>'
 
-
 single_contact_update = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
-
 
 single_registrant = """
                     <domain:registrant>%s</domain:registrant>"""
 
+multiple_nameservers = """                <domain:ns>
+%s
+                </domain:ns>"""
 
-single_nameserver = "                <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+single_nameserver = "                    <domain:hostObj>%s</domain:hostObj>"
 
-single_nameserver2 = "                    <domain:ns><domain:hostObj>%s</domain:hostObj></domain:ns>"
+multiple_nameservers2 = """                    <domain:ns>
+%s
+                    </domain:ns>"""
 
+single_nameserver2 = "                        <domain:hostObj>%s</domain:hostObj>"
 
 auth_info = """    <domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>
             """
@@ -24,9 +27,7 @@ auth_info = """    <domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>
 auth_info2 = """    <domain:authInfo><domain:pw>%s</domain:pw></domain:authInfo>
                 """
 
-
 period = '<domain:period unit="%(units)s">%(value)s</domain:period>'
-
 
 check = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
@@ -40,7 +41,6 @@ check = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     </command>
 </epp>"""
 
-
 info = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
     <command>
@@ -52,7 +52,6 @@ info = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <clTRID>%(cltrid)s</clTRID>
     </command>
 </epp>"""
-
 
 create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
@@ -72,7 +71,6 @@ create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     </command>
 </epp>"""
 
-
 renew = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
     <command>
@@ -86,7 +84,6 @@ renew = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <clTRID>%(cltrid)s</clTRID>
     </command>
 </epp>"""
-
 
 update = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
@@ -110,14 +107,12 @@ update = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     </command>
 </epp>"""
 
-
 restore_request_extension = """
         <extension>
             <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
                 <rgp:restore op="request"></rgp:restore>
             </rgp:update>
         </extension>"""
-
 
 restore_report_extension = """
         <extension>
@@ -137,7 +132,6 @@ restore_report_extension = """
             </rgp:update>
         </extension>"""
 
-
 transfer = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
     <command>
@@ -150,7 +144,6 @@ transfer = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <clTRID>%(cltrid)s</clTRID>
     </command>
 </epp>"""
-
 
 transferstatus = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
