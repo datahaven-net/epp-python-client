@@ -401,7 +401,7 @@ def cmd_contact_info(contact_id, auth_info=None, **args):
     return run(cmd, **args)
 
 
-def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], **args):
+def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], include_international=True, include_local=True, **args):
     """
     contacts_list item :
     {
@@ -431,42 +431,46 @@ def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=N
         cmd['args']['email'] = email
     if auth_info is not None:
         cmd['args']['auth_info'] = auth_info
-    for cont in contacts_list[:]:
-        international = copy.deepcopy(cont)
-        international['type'] = 'int'
-        if 'name' in international:
-            international['name'] = '%s' % _tr(international['name'])
-        if 'org' in international:
-            international['org'] = '%s' % _tr(international['org'])
-        if 'city' in international['address']:
-            international['address']['city'] = '%s' % _tr(international['address']['city'])
-        if 'sp' in international['address']:
-            international['address']['sp'] = '%s' % _tr(international['address']['sp'])
-        if 'pc' in international['address']:
-            international['address']['pc'] = '%s' % _tr(international['address']['pc'])
-        for i in range(len(international['address']['street'])):
-            international['address']['street'][i] = '%s' % _tr(international['address']['street'][i])
-        cmd['args']['contacts'].append(international)
-    for cont in contacts_list[:]:
-        loc = copy.deepcopy(cont)
-        loc['type'] = 'loc'
-        if 'name' in loc:
-            loc['name'] = _enc(loc['name'])
-        if 'org' in loc:
-            loc['org'] = _enc(loc['org'])
-        if 'city' in loc['address']:
-            loc['address']['city'] = '%s' % _enc(loc['address']['city'])
-        if 'sp' in loc['address']:
-            loc['address']['sp'] = '%s' % _enc(loc['address']['sp'])
-        if 'pc' in loc['address']:
-            loc['address']['pc'] = '%s' % _enc(loc['address']['pc'])
-        for i in range(len(loc['address']['street'])):
-            loc['address']['street'][i] = '%s' % _enc(loc['address']['street'][i])
-        cmd['args']['contacts'].append(loc)
+    if not include_international and not include_local:
+        include_international = True
+    if include_international:
+        for cont in contacts_list[:]:
+            international = copy.deepcopy(cont)
+            international['type'] = 'int'
+            if 'name' in international:
+                international['name'] = '%s' % _tr(international['name'])
+            if 'org' in international:
+                international['org'] = '%s' % _tr(international['org'])
+            if 'city' in international['address']:
+                international['address']['city'] = '%s' % _tr(international['address']['city'])
+            if 'sp' in international['address']:
+                international['address']['sp'] = '%s' % _tr(international['address']['sp'])
+            if 'pc' in international['address']:
+                international['address']['pc'] = '%s' % _tr(international['address']['pc'])
+            for i in range(len(international['address']['street'])):
+                international['address']['street'][i] = '%s' % _tr(international['address']['street'][i])
+            cmd['args']['contacts'].append(international)
+    if include_local:
+        for cont in contacts_list[:]:
+            loc = copy.deepcopy(cont)
+            loc['type'] = 'loc'
+            if 'name' in loc:
+                loc['name'] = _enc(loc['name'])
+            if 'org' in loc:
+                loc['org'] = _enc(loc['org'])
+            if 'city' in loc['address']:
+                loc['address']['city'] = '%s' % _enc(loc['address']['city'])
+            if 'sp' in loc['address']:
+                loc['address']['sp'] = '%s' % _enc(loc['address']['sp'])
+            if 'pc' in loc['address']:
+                loc['address']['pc'] = '%s' % _enc(loc['address']['pc'])
+            for i in range(len(loc['address']['street'])):
+                loc['address']['street'][i] = '%s' % _enc(loc['address']['street'][i])
+            cmd['args']['contacts'].append(loc)
     return run(cmd, **args)
 
 
-def cmd_contact_update(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], **args):
+def cmd_contact_update(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], include_international=True, include_local=True, **args):
     """
     contacts_list item :
     {
@@ -496,38 +500,42 @@ def cmd_contact_update(contact_id, email=None, voice=None, fax=None, auth_info=N
         cmd['args']['email'] = email
     if auth_info is not None:
         cmd['args']['auth_info'] = auth_info
-    for cont in contacts_list[:]:
-        international = copy.deepcopy(cont)
-        international['type'] = 'int'
-        if 'name' in international:
-            international['name'] = '%s' % _tr(international['name'])
-        if 'org' in international:
-            international['org'] = '%s' % _tr(international['org'])
-        if 'city' in international['address']:
-            international['address']['city'] = '%s' % _tr(international['address']['city'])
-        if 'sp' in international['address']:
-            international['address']['sp'] = '%s' % _tr(international['address']['sp'])
-        if 'pc' in international['address']:
-            international['address']['pc'] = '%s' % _tr(international['address']['pc'])
-        for i in range(len(international['address']['street'])):
-            international['address']['street'][i] = '%s' % _tr(international['address']['street'][i])
-        cmd['args']['contacts'].append(international)
-    for cont in contacts_list[:]:
-        loc = copy.deepcopy(cont)
-        loc['type'] = 'loc'
-        if 'name' in loc:
-            loc['name'] = _enc(loc['name'])
-        if 'org' in loc:
-            loc['org'] = _enc(loc['org'])
-        if 'city' in loc['address']:
-            loc['address']['city'] = '%s' % _enc(loc['address']['city'])
-        if 'sp' in loc['address']:
-            loc['address']['sp'] = '%s' % _enc(loc['address']['sp'])
-        if 'pc' in loc['address']:
-            loc['address']['pc'] = '%s' % _enc(loc['address']['pc'])
-        for i in range(len(loc['address']['street'])):
-            loc['address']['street'][i] = '%s' % _enc(loc['address']['street'][i])
-        cmd['args']['contacts'].append(loc)
+    if not include_international and not include_local:
+        include_international = True
+    if include_international:
+        for cont in contacts_list[:]:
+            international = copy.deepcopy(cont)
+            international['type'] = 'int'
+            if 'name' in international:
+                international['name'] = '%s' % _tr(international['name'])
+            if 'org' in international:
+                international['org'] = '%s' % _tr(international['org'])
+            if 'city' in international['address']:
+                international['address']['city'] = '%s' % _tr(international['address']['city'])
+            if 'sp' in international['address']:
+                international['address']['sp'] = '%s' % _tr(international['address']['sp'])
+            if 'pc' in international['address']:
+                international['address']['pc'] = '%s' % _tr(international['address']['pc'])
+            for i in range(len(international['address']['street'])):
+                international['address']['street'][i] = '%s' % _tr(international['address']['street'][i])
+            cmd['args']['contacts'].append(international)
+    if include_local:
+        for cont in contacts_list[:]:
+            loc = copy.deepcopy(cont)
+            loc['type'] = 'loc'
+            if 'name' in loc:
+                loc['name'] = _enc(loc['name'])
+            if 'org' in loc:
+                loc['org'] = _enc(loc['org'])
+            if 'city' in loc['address']:
+                loc['address']['city'] = '%s' % _enc(loc['address']['city'])
+            if 'sp' in loc['address']:
+                loc['address']['sp'] = '%s' % _enc(loc['address']['sp'])
+            if 'pc' in loc['address']:
+                loc['address']['pc'] = '%s' % _enc(loc['address']['pc'])
+            for i in range(len(loc['address']['street'])):
+                loc['address']['street'][i] = '%s' % _enc(loc['address']['street'][i])
+            cmd['args']['contacts'].append(loc)
     return run(cmd, **args)
 
 
