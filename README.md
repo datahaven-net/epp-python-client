@@ -10,9 +10,9 @@ The library provides an interface to the Extensible Provisioning Protocol:
 
 
 
-## Install
+## Install & Update
 
-	pip install --upgrade https://github.com/datahaven-net/epp-python-client/archive/master.zip
+	pip install --upgrade --no-cache-dir https://github.com/datahaven-net/epp-python-client/archive/master.zip
 
 
 
