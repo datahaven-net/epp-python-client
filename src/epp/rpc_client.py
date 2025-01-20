@@ -233,7 +233,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             logger.error('empty response from EPP_RPC_Client')
             raise ValueError('empty response from EPP_RPC_Client')
     except Exception as exc:
-        logger.exception('ERROR from EPP_RPC_Client')
+        logger.exception('ERROR from EPP_RPC_Client: %r' % exc)
         health_marker_filepath = os.environ.get('RPC_CLIENT_HEALTH_FILE', health_marker_filepath)
         if not health_marker_filepath:
             # if there is no configuration for the health marker file - do not do any retries and just fail
@@ -261,7 +261,7 @@ def run(json_request, raise_for_result=True, logs=True, **args):
     try:
         json.dumps(json_request)
     except Exception as exc:
-        logger.error('epp request failed, invalid json input')
+        logger.exception('epp request failed, invalid json input: %r', exc)
         raise rpc_error.EPPBadResponse('epp request failed, invalid json input')
 
     if logs:
@@ -273,10 +273,12 @@ def run(json_request, raise_for_result=True, logs=True, **args):
     try:
         rpc_response = do_rpc_request(json_request, **args)
     except rpc_error.EPPError as exc:
-        logger.error('epp request failed with known error: %s', exc)
+        logger.exception('epp request failed with known error: %s', exc)
         raise exc
     except Exception as exc:
-        logger.error('epp request failed, unexpected error: %s', traceback.format_exc())
+        if DEBUG:
+            traceback.print_exc()
+        logger.exception('epp request failed, unexpected error: %s', exc)
         raise rpc_error.EPPBadResponse(exc)
 
     if not rpc_response:
@@ -286,7 +288,7 @@ def run(json_request, raise_for_result=True, logs=True, **args):
     try:
         json_output = json.loads(rpc_response)
     except Exception as exc:
-        logger.exception('epp request failed, response is not readable')
+        logger.exception('epp request failed, response is not readable: %s', exc)
         raise rpc_error.EPPBadResponse(exc)
 
     output_error = json_output.get('error')
@@ -298,8 +300,7 @@ def run(json_request, raise_for_result=True, logs=True, **args):
             code = json_output['epp']['response']['result']['@code']
             msg = json_output['epp']['response']['result']['msg'].replace('Command failed;', '')
         except:
-            if logs:
-                logger.error('bad formatted response: %r', rpc_response)
+            logger.exception('bad formatted response: %r', json_output)
             raise rpc_error.EPPBadResponse('bad formatted response, response code not found')
         good_response_codes = ['1000', ]
         if True:  # just to be able to debug poll script packets
@@ -316,7 +317,8 @@ def run(json_request, raise_for_result=True, logs=True, **args):
         else:
             try:
                 code = json_output['epp']['response']['result']['@code']
-            except:
+            except Exception as exc:
+                logger.exception('bad formatted response: %r', json_output)
                 code = 'unknown'
             logger.info('        <<< EPP: %s', code)
 
