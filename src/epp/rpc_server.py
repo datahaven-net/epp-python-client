@@ -138,8 +138,11 @@ class EPP_RPC_Server(object):
         try:
             self.channel.start_consuming()
         except KeyboardInterrupt:
-            self.epp.close()
-            logger.info('server stopped gracefully')
+            try:
+                self.epp.close()
+                logger.info('server stopped gracefully')
+            except Exception as exc:
+                logger.info('error closing EPP connection: %r', exc)
             return True
         except Exception as exc:
             logger.info('finished with an error: %r', exc)
