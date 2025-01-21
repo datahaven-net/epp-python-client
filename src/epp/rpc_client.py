@@ -142,7 +142,7 @@ class EPP_RPC_Client(object):
             try:
                 self.rabbitmq_connection.process_data_events(time_limit=request_time_limit)
             except Exception as e:
-                logger.exception('Error from RabbitMQ.process_data_events')
+                logger.exception('Error from RabbitMQ.process_data_events: %r', e)
                 self.reply = '{"error": "EPP request processing failed: %s"}' % e
             if not self.reply and request_time_limit:
                 self.reply = '{"error": "EPP request timeout"}'
@@ -233,7 +233,7 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
             logger.error('empty response from EPP_RPC_Client')
             raise ValueError('empty response from EPP_RPC_Client')
     except Exception as exc:
-        logger.exception('ERROR from EPP_RPC_Client: %r' % exc)
+        logger.exception('ERROR from EPP_RPC_Client: %r', exc)
         health_marker_filepath = os.environ.get('RPC_CLIENT_HEALTH_FILE', health_marker_filepath)
         if not health_marker_filepath:
             # if there is no configuration for the health marker file - do not do any retries and just fail
@@ -244,15 +244,19 @@ def do_rpc_request(json_request, cache_client=True, health_marker_filepath=None,
         time.sleep(2)
         # if the issue is still here it will raise EPPBadResponse() in run() method anyway
         _CachedClient = None
-        client = make_client(
-            cache_client=cache_client,
-            rabbitmq_credentials=rabbitmq_credentials,
-            rabbitmq_connection_timeout=rabbitmq_connection_timeout,
-            rabbitmq_queue_name=rabbitmq_queue_name,
-            json_conf=json_conf,
-        )
-        client.connect()
-        reply = client.request(json.dumps(json_request), request_time_limit=request_time_limit)
+        try:
+            client = make_client(
+                cache_client=cache_client,
+                rabbitmq_credentials=rabbitmq_credentials,
+                rabbitmq_connection_timeout=rabbitmq_connection_timeout,
+                rabbitmq_queue_name=rabbitmq_queue_name,
+                json_conf=json_conf,
+            )
+            client.connect()
+            reply = client.request(json.dumps(json_request), request_time_limit=request_time_limit)
+        except Exception as exc:
+            logger.exception('ERROR from EPP_RPC_Client after retry: %r', exc)
+            return None
     return reply
 
 #------------------------------------------------------------------------------
@@ -433,8 +437,6 @@ def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=N
         cmd['args']['email'] = email
     if auth_info is not None:
         cmd['args']['auth_info'] = auth_info
-    if not include_international and not include_local:
-        include_international = True
     if include_international:
         for cont in contacts_list[:]:
             international = copy.deepcopy(cont)
@@ -502,8 +504,6 @@ def cmd_contact_update(contact_id, email=None, voice=None, fax=None, auth_info=N
         cmd['args']['email'] = email
     if auth_info is not None:
         cmd['args']['auth_info'] = auth_info
-    if not include_international and not include_local:
-        include_international = True
     if include_international:
         for cont in contacts_list[:]:
             international = copy.deepcopy(cont)

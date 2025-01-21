@@ -16,4 +16,7 @@ jobs:
 workflows:
   my-custom-workflow:
     jobs:
-      - epp-python-client-job
+      - epp-python-client-job:
+          filters:
+            branches:
+              ignore: master
