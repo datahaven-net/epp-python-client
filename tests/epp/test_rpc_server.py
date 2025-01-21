@@ -442,9 +442,6 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact
         <create>
             <contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
                 <contact:id>epp_id_new_123</contact:id>
-                <contact:voice>+1234567890</contact:voice>
-                <contact:fax>0987654321</contact:fax>
-                <contact:email>tester@earth.com</contact:email>
                 <contact:postalInfo type="int">
                     <contact:name>Tester</contact:name>
                     <contact:org>TestingCorp</contact:org>
@@ -452,8 +449,8 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact
                         <contact:street>Street, 1234</contact:street>
                         <contact:city>TrialTown</contact:city>
                         <contact:sp>North Side</contact:sp>
-                        <contact:cc>AI</contact:cc>
                         <contact:pc>1234AB</contact:pc>
+                        <contact:cc>AI</contact:cc>
                     </contact:addr>
                 </contact:postalInfo>
                 <contact:postalInfo type="loc">
@@ -463,11 +460,15 @@ xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact
                         <contact:street>Street, 1234</contact:street>
                         <contact:city>TrialTown</contact:city>
                         <contact:sp>North Side</contact:sp>
-                        <contact:cc>AI</contact:cc>
                         <contact:pc>1234AB</contact:pc>
+                        <contact:cc>AI</contact:cc>
                     </contact:addr>
                 </contact:postalInfo>
+                <contact:voice>+1234567890</contact:voice>
+                <contact:fax>0987654321</contact:fax>
+                <contact:email>tester@earth.com</contact:email>
                 <contact:authInfo><contact:pw>123456</contact:pw></contact:authInfo>
+            
             </contact:create>
         </create>
         <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>

@@ -55,6 +55,17 @@ def int_from_net(data, format_32):
 def int_to_net(value, format_32):
     return struct.pack(format_32, value)
 
+
+def sort_address_fields(fields):
+    weights = {
+        "street": 100,
+        "city": 90,
+        "sp": 80,
+        "pc": 70,
+        "cc": 60,
+    }
+    return sorted(fields, key=lambda field: -weights.get(field[0], 10))
+
 #------------------------------------------------------------------------------
 
 class EPPConnectionAlreadyClosedError(Exception):
@@ -382,7 +393,7 @@ class EPPConnection:
                         commands.contact.field3 % dict(
                             field=afield,
                             value=', '.join(avalue) if isinstance(avalue, list) else avalue,
-                        ) for (afield, avalue) in cont['address'].items() if avalue
+                        ) for (afield, avalue) in sort_address_fields(cont['address'].items()) if avalue
                     ])
                 ) for cont in contacts
             ]),
@@ -411,7 +422,7 @@ class EPPConnection:
                         commands.contact.field4 % dict(
                             field=afield,
                             value=', '.join(avalue) if isinstance(avalue, list) else avalue,
-                        ) for (afield, avalue) in cont['address'].items() if avalue
+                        ) for (afield, avalue) in sort_address_fields(cont['address'].items()) if avalue
                     ])
                 ) for cont in contacts
             ]),
