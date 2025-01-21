@@ -12,6 +12,9 @@ jobs:
       - checkout
       - run: |
           make clean venv test
+    filters:
+      branches:
+        only: /pull/.*
 
 workflows:
   my-custom-workflow:
