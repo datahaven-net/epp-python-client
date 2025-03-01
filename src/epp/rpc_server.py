@@ -265,6 +265,11 @@ class EPP_RPC_Server(object):
                 auth_info=args.get('auth_info'),
             )
 
+        elif cmd == 'domain_delete':
+            response_xml = self.epp.domain_delete(
+                domain_name=args['name'],
+            )
+
         elif cmd == 'domain_renew':
             response_xml = self.epp.domain_renew(
                 domain_name=args['name'],

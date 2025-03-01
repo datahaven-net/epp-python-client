@@ -688,6 +688,37 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
             }, },
         )
 
+    def test_cmd_domain_delete(self):
+        verify_cmd(
+            json_request={
+                'cmd': 'domain_delete',
+                'args': {
+                    'name': 'fakedomain.com',
+                },
+            },
+            xml_request='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <delete>
+            <domain:delete xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>fakedomain.com</domain:name>
+            </domain:delete>
+        </delete>
+        <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
+    </command>
+</epp>''',
+            xml_response='''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">
+<response><result code="1000"><msg>Command completed successfully</msg></result>
+<trID><clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID><svTRID>1619202519557</svTRID></trID></response></epp>''',
+            json_response={'epp': {
+                '@{http://www.w3.org/2001/XMLSchema-instance}schemaLocation': 'urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd',
+                'response': {
+                    'result': {'@code': '1000', 'msg': 'Command completed successfully'},
+                    'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1619202519557'}, },
+            }, },
+        )
+
     def test_cmd_domain_renew(self):
         verify_cmd(
             json_request={
