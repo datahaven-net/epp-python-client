@@ -306,7 +306,7 @@ def run(json_request, raise_for_result=True, logs=True, **args):
         except:
             logger.exception('bad formatted response: %r', json_output)
             raise rpc_error.EPPBadResponse('bad formatted response, response code not found')
-        good_response_codes = ['1000', ]
+        good_response_codes = ['1000', '1001', ]
         if True:  # just to be able to debug poll script packets
             good_response_codes.extend(['1300', '1301', ])
         if code not in good_response_codes:
