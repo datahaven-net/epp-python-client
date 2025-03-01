@@ -472,6 +472,12 @@ class EPPConnection:
             auth_info='' if not auth_info else commands.domain.auth_info % auth_info,
         ), **kwargs)
 
+    def domain_delete(self, domain_name, **kwargs):
+        return self.call(cmd=commands.domain.delete % dict(
+            cltrid=make_cltrid(),
+            domain_name=domain_name,
+        ), **kwargs)
+
     def domain_renew(self, domain_name, cur_exp_date, period=1, period_units='y', **kwargs):
         return self.call(cmd=commands.domain.renew % dict(
             cltrid=make_cltrid(),

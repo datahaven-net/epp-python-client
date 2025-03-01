@@ -71,6 +71,18 @@ create = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     </command>
 </epp>"""
 
+delete = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+    <command>
+        <delete>
+            <domain:delete xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+                <domain:name>%(domain_name)s</domain:name>
+            </domain:delete>
+        </delete>
+        <clTRID>%(cltrid)s</clTRID>
+    </command>
+</epp>"""
+
 renew = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
     <command>

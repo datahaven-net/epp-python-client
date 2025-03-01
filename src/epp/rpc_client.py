@@ -596,6 +596,15 @@ def cmd_domain_create(
         cmd['args']['auth_info'] = auth_info
     return run(cmd, **args)
 
+def cmd_domain_delete(domain, **args):
+    cmd = {
+        'cmd': 'domain_delete',
+        'args': {
+            'name': domain,
+        },
+    }
+    return run(cmd, **args)
+
 def cmd_domain_renew(domain, cur_exp_date, period, period_units='y', **args):
     cmd = {
         'cmd': 'domain_renew',
