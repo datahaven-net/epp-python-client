@@ -489,6 +489,7 @@ class EPPConnection:
     def domain_update(self, domain_name, auth_info=None,
                       add_nameservers=[], remove_nameservers=[],
                       add_contacts=[], remove_contacts=[], change_registrant=None,
+                      add_statuses=[], remove_statuses=[],
                       rgp_restore=None, rgp_restore_report=None, **kwargs):
         restore_extension = ''
         if rgp_restore:
@@ -514,6 +515,12 @@ class EPPConnection:
             change_registrant='' if not change_registrant else (
                 commands.domain.single_registrant % change_registrant
             ),
+            add_statuses='\n'.join([
+                commands.domain.single_status_add % s for s in add_statuses
+            ]),
+            remove_statuses='\n'.join([
+                commands.domain.single_status_remove % s for s in remove_statuses
+            ]),
             restore_extension=restore_extension,
         ), **kwargs)
 

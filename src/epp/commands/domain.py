@@ -4,6 +4,10 @@ single_contact1 = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
 
 single_contact2 = '                    <domain:contact type="%(type)s">%(id)s</domain:contact>'
 
+single_status_add = '                    <domain:status s="%(name)s" lang="en">%(value)s</domain:status>'
+
+single_status_remove = '                    <domain:status s="%(name)s" />'
+
 single_contact_update = '<domain:contact type="%(type)s">%(id)s</domain:contact>'
 
 single_registrant = """
@@ -106,10 +110,12 @@ update = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <domain:add>
 %(add_nameservers)s
 %(add_contacts)s
+%(add_statuses)s
                 </domain:add>
                 <domain:rem>
 %(remove_nameservers)s
 %(remove_contacts)s
+%(remove_statuses)s
                 </domain:rem>
                 <domain:chg>%(change_registrant)s
                 %(auth_info)s</domain:chg>
