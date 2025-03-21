@@ -791,6 +791,12 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                     'remove_contacts': [
                         {'type': 'tech', 'id': 'tech02', },
                     ],
+                    'add_statuses': [
+                        {'name': 'clientTransferProhibited', 'value': '2024-07-11T12:43:35.458Z by customer', },
+                    ],
+                    'remove_statuses': [
+                        {'name': 'clientDeleteProhibited', },
+                    ],
                     'auth_info': 'abc123',
                 },
             },
@@ -805,6 +811,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                         <domain:hostObj>ns3.google.com</domain:hostObj>
                     </domain:ns>
                     <domain:contact type="admin">admin03</domain:contact>
+                    <domain:status s="clientTransferProhibited" lang="en">2024-07-11T12:43:35.458Z by customer</domain:status>
                 </domain:add>
                 <domain:rem>
                     <domain:ns>
@@ -812,6 +819,7 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                         <domain:hostObj>ns3.google.com</domain:hostObj>
                     </domain:ns>
                     <domain:contact type="tech">tech02</domain:contact>
+                    <domain:status s="clientDeleteProhibited" />
                 </domain:rem>
                 <domain:chg>
                     <domain:registrant>registrant03</domain:registrant>

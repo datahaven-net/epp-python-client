@@ -409,7 +409,7 @@ def cmd_contact_info(contact_id, auth_info=None, **args):
 
 def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], include_international=True, include_local=True, **args):
     """
-    contacts_list item :
+    contacts_list item example:
     {
         "name": "VeselinTest",
         "org":"whois",
@@ -476,7 +476,7 @@ def cmd_contact_create(contact_id, email=None, voice=None, fax=None, auth_info=N
 
 def cmd_contact_update(contact_id, email=None, voice=None, fax=None, auth_info=None, contacts_list=[], include_international=True, include_local=True, **args):
     """
-    contacts_list item :
+    contacts_list item example:
     {
         "name": "VeselinTest",
         "org":"whois",
@@ -574,7 +574,7 @@ def cmd_domain_create(
         domain, nameservers, contacts_dict, registrant,
         auth_info=None, period='1', period_units='y', **args):
     """
-    contacts_dict:
+    contacts_dict example:
     {
         "admin": "abc123",
         "tech": "def456",
@@ -621,13 +621,25 @@ def cmd_domain_update(domain,
                       add_nameservers_list=[], remove_nameservers_list=[],
                       add_contacts_list=[], remove_contacts_list=[],
                       change_registrant=None, auth_info=None,
+                      add_statuses_list=[], remove_statuses_list=[],
                       rgp_restore=None, rgp_restore_report={},
                       **args):
     """
-    add_contacts_list and remove_contacts_list item:
+    add_contacts_list and remove_contacts_list item example:
     {
         "type": "admin",
         "id": "abc123",
+    }
+
+    add_statuses_list item example:
+    {
+        "name": "clientRenewProhibited",
+        "value": "2024-07-11T12:43:35.458Z by customer",
+    }
+
+    remove_statuses_list item example:
+    {
+        "name": "clientDeleteProhibited",
     }
     """
     cmd = {
@@ -638,6 +650,8 @@ def cmd_domain_update(domain,
             'remove_nameservers': remove_nameservers_list,
             'add_contacts': add_contacts_list,
             'remove_contacts': remove_contacts_list,
+            'add_statuses': add_statuses_list,
+            'remove_statuses': remove_statuses_list,
         }
     }
     if change_registrant is not None:

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup_params = dict(
     name='epp-python-client',
-    version='1.0.2',
+    version='1.0.3',
     author='Veselin Penev',
     author_email='penev.veselin@gmail.com',
     packages=find_packages(where='src'),

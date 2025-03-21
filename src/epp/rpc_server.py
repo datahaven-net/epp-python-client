@@ -287,6 +287,8 @@ class EPP_RPC_Server(object):
                 add_contacts=args.get('add_contacts', []),
                 remove_contacts=args.get('remove_contacts', []),
                 change_registrant=args.get('change_registrant'),
+                add_statuses=args.get('add_statuses', []),
+                remove_statuses=args.get('remove_statuses', []),
                 rgp_restore=args.get('rgp_restore'),
                 rgp_restore_report=args.get('rgp_restore_report'),
             )
