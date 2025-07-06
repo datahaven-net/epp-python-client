@@ -623,6 +623,7 @@ def cmd_domain_update(domain,
                       change_registrant=None, auth_info=None,
                       add_statuses_list=[], remove_statuses_list=[],
                       rgp_restore=None, rgp_restore_report={},
+                      add_secdns={}, rem_secdns={}, change_secdns={},
                       **args):
     """
     add_contacts_list and remove_contacts_list item example:
@@ -662,6 +663,12 @@ def cmd_domain_update(domain,
         cmd['args']['rgp_restore'] = '1'
     if rgp_restore_report:
         cmd['args']['rgp_restore_report'] = rgp_restore_report
+    if add_secdns:
+        cmd['args']['add_secdns'] = add_secdns
+    if rem_secdns:
+        cmd['args']['rem_secdns'] = rem_secdns
+    if change_secdns:
+        cmd['args']['change_secdns'] = change_secdns
     return run(cmd, **args)
 
 def cmd_domain_transfer(domain, op='request', auth_info=None, period_years=None, **args):

@@ -232,6 +232,7 @@ class EPPConnection:
         return ret
 
     def call(self, cmd, soup=None, quite=False):
+        print(cmd)
         cltrid_request = ''
         r_req = self.cltrid_regexp.search(cmd)
         if r_req:
@@ -490,12 +491,46 @@ class EPPConnection:
                       add_nameservers=[], remove_nameservers=[],
                       add_contacts=[], remove_contacts=[], change_registrant=None,
                       add_statuses=[], remove_statuses=[],
-                      rgp_restore=None, rgp_restore_report=None, **kwargs):
-        restore_extension = ''
+                      rgp_restore=None, rgp_restore_report=None,
+                      add_secdns={}, rem_secdns={}, change_secdns={}, **kwargs):
+        extension = ''
         if rgp_restore:
-            restore_extension = commands.domain.restore_request_extension
+            extension += commands.domain.restore_request_extension
         if rgp_restore_report:
-            restore_extension = commands.domain.restore_report_extension % rgp_restore_report
+            extension += commands.domain.restore_report_extension % rgp_restore_report
+        secdns = ''
+        if add_secdns:
+            if 'keydata_pubkey' in add_secdns:
+                secdns += commands.domain.secdns_add % (commands.domain.secdns_dsdata_keydata % add_secdns)
+            elif 'digest' in add_secdns:
+                secdns += commands.domain.secdns_add % (commands.domain.secdns_dsdata % add_secdns)
+            elif 'max_sig_life' in add_secdns:
+                secdns += commands.domain.secdns_add % (commands.domain.secdns_max_sig_life % add_secdns)
+            elif 'all' in add_secdns:
+                if add_secdns['all']:
+                    secdns += commands.domain.secdns_all
+        if rem_secdns:
+            if 'keydata_pubkey' in rem_secdns:
+                secdns += commands.domain.secdns_rem % (commands.domain.secdns_dsdata_keydata % rem_secdns)
+            elif 'digest' in rem_secdns:
+                secdns += commands.domain.secdns_rem % (commands.domain.secdns_dsdata % rem_secdns)
+            elif 'max_sig_life' in rem_secdns:
+                secdns += commands.domain.secdns_rem % (commands.domain.secdns_max_sig_life % rem_secdns)
+            elif 'all' in rem_secdns:
+                if rem_secdns['all']:
+                    secdns += commands.domain.secdns_rem % commands.domain.secdns_all
+        if change_secdns:
+            if 'keydata_pubkey' in change_secdns:
+                secdns += commands.domain.secdns_chg % (commands.domain.secdns_dsdata_keydata % change_secdns)
+            elif 'digest' in change_secdns:
+                secdns += commands.domain.secdns_chg % (commands.domain.secdns_dsdata % change_secdns)
+            elif 'max_sig_life' in change_secdns:
+                secdns += commands.domain.secdns_chg % (commands.domain.secdns_max_sig_life % change_secdns)
+            elif 'all' in change_secdns:
+                if change_secdns['all']:
+                    secdns += commands.domain.secdns_chg % commands.domain.secdns_all
+        if secdns:
+            extension += commands.domain.secdns_extension % secdns
         return self.call(cmd=commands.domain.update % dict(
             cltrid=make_cltrid(),
             domain_name=domain_name,
@@ -521,7 +556,7 @@ class EPPConnection:
             remove_statuses='\n'.join([
                 commands.domain.single_status_remove % s for s in remove_statuses
             ]),
-            restore_extension=restore_extension,
+            extension=(commands.domain.extension_wrapper % extension) if extension else '',
         ), **kwargs)
 
     def domain_transfer(self, domain_name, auth_info=None, period=None, period_units=None, **kwargs):
