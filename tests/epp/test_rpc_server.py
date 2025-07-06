@@ -798,6 +798,25 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                         {'name': 'clientDeleteProhibited', },
                     ],
                     'auth_info': 'abc123',
+                    'add_secdns': {
+                        'key_tag': 'test-key-123',
+                        'alg': '3',
+                        'digest_type': '1',
+                        'digest': '38EC35D5B3A34B33C99B',
+                    },
+                    'rem_secdns': {
+                        'key_tag': 'test-key-123',
+                        'alg': '3',
+                        'digest_type': '1',
+                        'digest': '38EC35D5B3A34B33C99B',
+                        'keydata_flags': '257',
+                        'keydata_protocol': '3',
+                        'keydata_alg': '1',
+                        'keydata_pubkey': 'AQPJ////4Q==',
+                    },
+                    'change_secdns': {
+                        'max_sig_life': '11111111',
+                    },
                 },
             },
             xml_request='''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -842,6 +861,33 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                     </rgp:report>
                 </rgp:restore>
             </rgp:update>
+            <secDNS:update xmlns:secDNS="urn:ietf:params:xml:ns:secDNS-1.1">
+                <secDNS:add>
+                    <secDNS:dsData>
+                        <secDNS:keyTag>test-key-123</secDNS:keyTag>
+                        <secDNS:alg>3</secDNS:alg>
+                        <secDNS:digestType>1</secDNS:digestType>
+                        <secDNS:digest>38EC35D5B3A34B33C99B</secDNS:digest>
+                    </secDNS:dsData>
+                </secDNS:add>
+                <secDNS:rem>
+                    <secDNS:dsData>
+                        <secDNS:keyTag>test-key-123</secDNS:keyTag>
+                        <secDNS:alg>3</secDNS:alg>
+                        <secDNS:digestType>1</secDNS:digestType>
+                        <secDNS:digest>38EC35D5B3A34B33C99B</secDNS:digest>
+                        <secDNS:keyData>
+                            <secDNS:flags>257</secDNS:flags>
+                            <secDNS:protocol>3</secDNS:protocol>
+                            <secDNS:alg>1</secDNS:alg>
+                            <secDNS:pubKey>AQPJ////4Q==</secDNS:pubKey>
+                        </secDNS:keyData>
+                    </secDNS:dsData>
+                </secDNS:rem>
+                <secDNS:chg>
+                    <secDNS:maxSigLife>11111111</secDNS:maxSigLife>
+                </secDNS:chg>
+            </secDNS:update>
         </extension>
         <clTRID>c5bc8f94103f1a47019a09049dff5aec</clTRID>
     </command>

@@ -120,21 +120,22 @@ update = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <domain:chg>%(change_registrant)s
                 %(auth_info)s</domain:chg>
             </domain:update>
-        </update>%(restore_extension)s
+        </update>%(extension)s
         <clTRID>%(cltrid)s</clTRID>
     </command>
 </epp>"""
 
-restore_request_extension = """
+extension_wrapper = """
         <extension>
-            <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
-                <rgp:restore op="request"></rgp:restore>
-            </rgp:update>
+%s
         </extension>"""
 
-restore_report_extension = """
-        <extension>
-            <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
+restore_request_extension = """            <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
+                <rgp:restore op="request"></rgp:restore>
+            </rgp:update>
+"""
+
+restore_report_extension = """            <rgp:update xmlns:rgp="urn:ietf:params:xml:ns:rgp-1.0">
                 <rgp:restore op="report">
                     <rgp:report>
                         <rgp:preData>%(pre_data)s</rgp:preData>
@@ -148,7 +149,50 @@ restore_report_extension = """
                     </rgp:report>
                 </rgp:restore>
             </rgp:update>
-        </extension>"""
+"""
+
+secdns_extension = """            <secDNS:update xmlns:secDNS="urn:ietf:params:xml:ns:secDNS-1.1">
+%s            </secDNS:update>"""
+
+secdns_add = """                <secDNS:add>
+%s
+                </secDNS:add>
+"""
+
+secdns_rem = """                <secDNS:rem>
+%s
+                </secDNS:rem>
+"""
+
+secdns_chg = """                <secDNS:chg>
+%s
+                </secDNS:chg>
+"""
+
+secdns_dsdata = """                    <secDNS:dsData>
+                        <secDNS:keyTag>%(key_tag)s</secDNS:keyTag>
+                        <secDNS:alg>%(alg)s</secDNS:alg>
+                        <secDNS:digestType>%(digest_type)s</secDNS:digestType>
+                        <secDNS:digest>%(digest)s</secDNS:digest>
+                    </secDNS:dsData>"""
+
+secdns_dsdata_keydata = """                    <secDNS:dsData>
+                        <secDNS:keyTag>%(key_tag)s</secDNS:keyTag>
+                        <secDNS:alg>%(alg)s</secDNS:alg>
+                        <secDNS:digestType>%(digest_type)s</secDNS:digestType>
+                        <secDNS:digest>%(digest)s</secDNS:digest>
+                        <secDNS:keyData>
+                            <secDNS:flags>%(keydata_flags)s</secDNS:flags>
+                            <secDNS:protocol>%(keydata_protocol)s</secDNS:protocol>
+                            <secDNS:alg>%(keydata_alg)s</secDNS:alg>
+                            <secDNS:pubKey>%(keydata_pubkey)s</secDNS:pubKey>
+                        </secDNS:keyData>
+                    </secDNS:dsData>"""
+
+secdns_max_sig_life = """                    <secDNS:maxSigLife>%(max_sig_life)s</secDNS:maxSigLife>"""
+
+secdns_all = """                    <secDNS:all>true</secDNS:all>
+"""
 
 transfer = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
@@ -161,17 +205,4 @@ transfer = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
         </transfer>
         <clTRID>%(cltrid)s</clTRID>
     </command>
-</epp>"""
-
-transferstatus = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
-  <command>
-    <transfer op="query">
-      <domain:transfer
-         xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
-        <domain:name>%s</domain:name>
-      </domain:transfer>
-    </transfer>
-    <clTRID>CHKTEST1</clTRID>
-  </command>
 </epp>"""

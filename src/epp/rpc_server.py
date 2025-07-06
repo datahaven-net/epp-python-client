@@ -291,6 +291,9 @@ class EPP_RPC_Server(object):
                 remove_statuses=args.get('remove_statuses', []),
                 rgp_restore=args.get('rgp_restore'),
                 rgp_restore_report=args.get('rgp_restore_report'),
+                add_secdns=args.get('add_secdns'),
+                rem_secdns=args.get('rem_secdns'),
+                change_secdns=args.get('change_secdns'),
             )
 
         elif cmd == 'domain_transfer':
