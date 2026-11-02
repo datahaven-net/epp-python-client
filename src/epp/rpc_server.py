@@ -12,6 +12,7 @@ import smtplib
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from xml.sax.saxutils import escape
 
 #------------------------------------------------------------------------------
 
@@ -26,6 +27,20 @@ from epp import xml2json
 
 class XML2JsonOptions(object):
     pretty = True
+
+#------------------------------------------------------------------------------
+
+def escape_xml_values(value):
+    """
+    All values are placed into XML templates (as text or attribute values), so they must be escaped.
+    """
+    if isinstance(value, str):
+        return escape(value, {'"': '&quot;', "'": '&apos;', })
+    if isinstance(value, dict):
+        return {k: escape_xml_values(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, )):
+        return [escape_xml_values(v) for v in value]
+    return value
 
 #------------------------------------------------------------------------------
 
@@ -172,6 +187,7 @@ class EPP_RPC_Server(object):
         return True
 
     def do_epp_request(self, cmd, args):
+        args = escape_xml_values(args)
         response_xml = None
         if cmd == 'poll_req':
             response_xml = self.epp.poll_req(
