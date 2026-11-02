@@ -955,3 +955,48 @@ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ie
                     'trID': {'clTRID': 'c5bc8f94103f1a47019a09049dff5aec', 'svTRID': '1619789418042'}, },
             }, },
         )
+
+    def test_escape_xml_values(self):
+        assert rpc_server.escape_xml_values({
+            'name': 'Smith & Co <b>"x"</b> \'y\'',
+            'list': ['<a>', 1, None, {'k': '&'}],
+            'number': 5,
+        }) == {
+            'name': 'Smith &amp; Co &lt;b&gt;&quot;x&quot;&lt;/b&gt; &apos;y&apos;',
+            'list': ['&lt;a&gt;', 1, None, {'k': '&amp;'}],
+            'number': 5,
+        }
+
+    def test_xml_injection_escaped(self):
+        sample_response = '''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+<response><result code="1000"><msg>Command completed successfully</msg></result></response></epp>'''
+        injection = 'Evil</contact:name><contact:org>INJECTED</contact:org><contact:name>x'
+        with mock.patch('epp.epp_client.EPPConnection.write') as mock_write:
+            srv(xml_response=sample_response).do_process_epp_command(request_json={
+                'cmd': 'contact_update',
+                'args': {
+                    'id': 'epp_id_123',
+                    'email': 'tester@earth.com',
+                    'contacts': [{
+                        'type': 'int',
+                        'name': injection,
+                        'org': 'Smith & Co',
+                        'address': {'street': ['Street', ], 'city': 'Town', 'cc': 'AI', },
+                    }, ],
+                },
+            })
+            xml_request = mock_write.call_args[0][0]
+        assert '<contact:org>INJECTED</contact:org>' not in xml_request
+        assert 'Evil&lt;/contact:name&gt;&lt;contact:org&gt;INJECTED&lt;/contact:org&gt;&lt;contact:name&gt;x' in xml_request
+        assert 'Smith &amp; Co' in xml_request
+
+    def test_auth_info_injection_escaped(self):
+        sample_response = '''<?xml version="1.0" encoding="UTF-8"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+<response><result code="1000"><msg>Command completed successfully</msg></result></response></epp>'''
+        with mock.patch('epp.epp_client.EPPConnection.write') as mock_write:
+            srv(xml_response=sample_response).do_process_epp_command(request_json={
+                'cmd': 'domain_info',
+                'args': {'name': 'abc.ai', 'auth_info': 'x</domain:pw></domain:authInfo><domain:y>'},
+            })
+            xml_request = mock_write.call_args[0][0]
+        assert '<domain:pw>x&lt;/domain:pw&gt;&lt;/domain:authInfo&gt;&lt;domain:y&gt;</domain:pw>' in xml_request
